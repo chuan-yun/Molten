@@ -1,0 +1,79 @@
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+*.loT
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# Example
+example/zipkin.jar
+
+# tool
+tool
+ctrl
+
+# Extension
+.deps
+.libs
+Makefile
+Makefile.fragments
+Makefile.global
+Makefile.objects
+acinclude.m4
+aclocal.m4
+autom4te.cache
+build
+deps
+common
+confdefs.h
+config.cache
+config.guess
+config.h
+config.h.in
+config.log
+config.nice
+config.status
+config.sub
+configure
+configure.in
+conftest*
+install-sh
+libtool
+ltmain.sh
+missing
+mkinstalldirs
+modules
+run-tests*.php
+tests/*.diff
+tests/*.exp
+tests/*.log
+tests/*.out
+tests/*.php
+tests/*.sh
+tests/nctmplog
+tests/*.mem
+tmp-php.ini
