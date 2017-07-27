@@ -316,7 +316,14 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
             write_log_fd(log, bytes, size);
             break;
         case SINK_LOG:
+
+            if (mo_mkdir_recursive(log->path) == -1) {
+                MOLTEN_ERROR("recursive make dir error [%s]", log->path);
+                return;
+            }
+
             generate_log_path(log);
+
             if (log->fd == -1) {
                 log->fd = open(log->real_path, O_WRONLY|O_CREAT|O_APPEND, 0666);
                 if (log->fd == -1) {
@@ -348,38 +355,12 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
 void mo_chain_log_flush(mo_chain_log_t *log)
 {
     char *dname; 
-    char *tmp_dir;
     ssize_t written_bytes = 0;
-
-    tmp_dir = estrdup(log->real_path); 
-    dname = dirname(tmp_dir);
 
     /* Init json encode function */
     zval func;
     MO_ZVAL_STRING(&func, "json_encode", 1);
     
-    if (mo_mkdir_recursive(dname) == -1) {
-        MOLTEN_ERROR("recursive make dir error [%s]", tmp_dir);
-        goto end;
-    }
-   
-    //if (log->sink_type == SINK_STD) {
-    //    log->fd = 1;
-    //} else if (log->sink_type == SINK_LOG) {
-    //    if (log->fd == -1) {
-    //        log->fd = open(log->real_path, O_WRONLY|O_CREAT|O_APPEND, 0666);
-    //        if (log->fd == -1) {
-    //            MOLTEN_ERROR("Open log error[%d] errstr[%s]", errno, strerror(errno));
-    //            goto end;
-    //        }
-
-    //        struct stat sb;
-    //        if (lstat(log->real_path, &sb) != -1) {
-    //            log->ino = sb.st_ino;
-    //        } 
-    //    }
-    //}
-
     if (log->output_type == SPANS_BREAK) {
         /* Encode one span one line , easy for debug */
         HashTable *ht = Z_ARRVAL_P(log->spans);
@@ -443,7 +424,6 @@ void mo_chain_log_flush(mo_chain_log_t *log)
     
 end:
     mo_zval_dtor(&func);
-    efree(tmp_dir);
     mo_zval_ptr_dtor(&log->spans);
     MO_FREE_ALLOC_ZVAL(log->spans);
     log->spans = NULL;

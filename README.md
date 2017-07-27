@@ -128,7 +128,6 @@ Use agent to control our sink type and detail parameter.
 
 Report base import info which we do not sampled like error list.
 
-
 # Contributing
 
 Welcome developers who willing to make it better.

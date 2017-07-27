@@ -310,7 +310,7 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
 #define SET_SPAN_EXCEPTION(exception_ce,pit,frame,service_name,host,port)          do {                                                   \
         if (instanceof_function(Z_OBJCE_P(EG(exception)), exception_ce) == 1) {                                                 \
             zval *message = mo_zend_read_property(exception_ce, EG(exception), "message", sizeof("message") - 1, 1);            \
-            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_SA);                       \
+            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_ERROR);                       \
            }                                                                \
 }while(0)
 #else
@@ -319,7 +319,7 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
             zval tmp;                                                                               \
             ZVAL_OBJ(&tmp, EG(exception));                                                          \
             zval *message = mo_zend_read_property(exception_ce, &tmp, "message", sizeof("message") - 1, 1);      \
-            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_SA);    \
+            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_ERROR);    \
         }                   \
 }while(0)
 #endif
@@ -580,7 +580,7 @@ static void redis_record(mo_interceptor_t *pit, mo_frame_t *frame)
     if (EG(exception) != NULL) { 
         zend_class_entry *redis_exception_ce;
         if (mo_zend_hash_find(CG(class_table), "redisexception", sizeof("redisexception"), (void **)&redis_exception_ce) == SUCCESS) {
-            SET_SPAN_EXCEPTION(redis_exception_ce, pit, frame, "Redis", Z_STRVAL(host), Z_LVAL(port));
+            SET_SPAN_EXCEPTION_EX(redis_exception_ce, frame, pit);
         }
     }
    

@@ -25,7 +25,7 @@ function molten_nc_server($port) {
 	);
 	$doc_root = __DIR__;
 
-    $cmd = "exec nc -kl $port -c 'xargs -n1 echo >>" . NC_LOG .  "'";
+    $cmd = "exec netcat -kl -p $port -c 'xargs -n1 echo >>" . NC_LOG .  "'";
 	$cmd .= " 2>/dev/null";
 	$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);
     sleep(1);
