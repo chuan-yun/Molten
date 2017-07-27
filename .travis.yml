@@ -1,0 +1,57 @@
+language: c
+
+env:
+    - MO_PHP_VERSION=7.1.2
+    - MO_PHP_VERSION=7.0.16
+    - MO_PHP_VERSION=5.6.30
+
+services:
+    - mysql
+    - redis-server
+    - mongodb
+    - memcached
+
+cache:
+    directories:
+        - php_source
+        - php_build
+
+before_install:
+
+    # install software
+    - sudo apt-get install netcat-traditional 
+    - printf "2\n"| sudo update-alternatives --config nc
+    - sudo apt-get install libmemcached-tools
+
+    # restart redis
+    - sudo redis-server /etc/redis/redis.conf --port 6380
+
+    # set mongodb
+    - mysql -e 'CREATE DATABASE IF NOT EXISTS molten;' -u root
+    - mysql -e 'CREATE TABLE molten.configs (
+        `key` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+        `value` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL,
+        PRIMARY KEY (`key`)
+        ) ENGINE=InnoDB;' -u root
+    - mysql -e 'insert into molten.configs(`key`, `value`)  values(1, 2)' -u root
+
+    - MO_PHP_SRC=${TRAVIS_BUILD_DIR}/php_source/php-${MO_PHP_VERSION}
+    - MO_PHP_PATH=${TRAVIS_BUILD_DIR}/php_build/php-${MO_PHP_VERSION}
+    - MO_PHP_BIN=${MO_PHP_PATH}/bin/php
+    - MO_PHP_PECL=${MO_PHP_PATH}/bin/pecl
+    
+    # build PHP without ZTS by ourselves...
+    - mkdir -p php_source php_build
+    - (cd php_source && ls -l php-${MO_PHP_VERSION}.tar.bz2 || ../.travis/php_get.sh ${MO_PHP_VERSION})
+    - (cd php_source && ls -l ${MO_PHP_BIN} || ../.travis/php_build.sh ${TRAVIS_BUILD_DIR}/php_build php-${MO_PHP_VERSION}.tar.bz2)
+
+    # install extension
+    - (sh .travis/ext_install.sh $MO_PHP_PATH $MO_PHP_VERSION)
+
+before_script:
+    - .travis/ext_build.sh ${MO_PHP_PATH}
+
+script:
+    - (REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=${MO_PHP_BIN} ${MO_PHP_BIN} -n run-tests.php -q -n -d extension=molten.so -d extension=redis.so -d extension=mongodb.so -d extension=memcached.so --show-diff)
+
+after_script:

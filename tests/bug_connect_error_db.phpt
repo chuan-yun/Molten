@@ -24,7 +24,7 @@ $mysql->query($sql);
 mysqli_exec($fail_db, $sql);
 ?>
 --EXPECTF--
-Warning: mysqli::real_connect(): (HY000/2002): No route to host in %s on line 9
+Warning: mysqli::real_connect(): (HY000/2002): %s on line 9
 
 Warning: mysqli::query(): invalid object or resource mysqli
  in %s on line 10
@@ -32,7 +32,7 @@ Warning: mysqli::query(): invalid object or resource mysqli
 Warning: mysqli::query(): invalid object or resource mysqli
  in %s on line 10
 
-Warning: mysqli_connect(): (HY000/2002): No route to host in %s on line 7
+Warning: mysqli_connect(): (HY000/2002): %s on line 7
 
 Warning: mysqli_query() expects parameter 1 to be mysqli, boolean given in %s on line 8
 
@@ -40,7 +40,7 @@ Warning: mysqli_prepare() expects parameter 1 to be mysqli, boolean given in %s 
 
 Warning: mysqli_stmt_execute() expects parameter 1 to be mysqli_stmt, null given in %s on line 10
 
-Warning: mysqli::%s(): (HY000/2002): No route to host in %s on line 17
+Warning: mysqli::%s(): (HY000/2002): %s on line 17
 
 Warning: mysqli::query(): Couldn't fetch mysqli in %s on line 18
 
@@ -54,19 +54,19 @@ Warning: mysqli::prepare(): Couldn't fetch mysqli in %s on line 19
 
 Warning: mysqli::prepare(): Couldn't fetch mysqli in %s on line 19
 
-Warning: mysqli::%s(): (HY000/2002): No route to host in %s on line 27
+Warning: mysqli::%s(): (HY000/2002): %s on line 27
 
 Warning: mysqli::stmt_init(): Couldn't fetch mysqli in %s on line 28
 
 %s
-{"traceId":"%s","name":"real_connect","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"duobao","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"No route to host","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
-{"traceId":"%s","name":"query","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"select * from configs","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"No route to host","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
-{"traceId":"%s","name":"mysqli_connect","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"duobao","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"No route to host","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
+{"traceId":"%s","name":"real_connect","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
+{"traceId":"%s","name":"query","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
+{"traceId":"%s","name":"mysqli_connect","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"mysqli_query","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"select * from configs","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"mysqli_prepare","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"select * from configs","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"mysqli_stmt_execute","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
-{"traceId":"%s","name":"%s","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"duobao","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"No route to host","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
+{"traceId":"%s","name":"%s","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"query","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"select * from configs","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"prepare","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"db.statement","value":"select * from configs","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"db.type","value":"mysql","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
-{"traceId":"%s","name":"%s","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"duobao","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"No route to host","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
+{"traceId":"%s","name":"%s","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"sa","value":"true","endpoint":{"serviceName":"mysql","ipv4":"%s","port":%d}},{"key":"db.instance","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"cli","version":"%s","id":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"sr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"ss","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"path","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}

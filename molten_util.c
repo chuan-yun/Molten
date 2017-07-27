@@ -80,7 +80,7 @@ void bin2hex64(char **output, const uint64_t *input)
 }
 
 /* random 64 and change to hex */
-void inline rand64hex(char **output) 
+void rand64hex(char **output) 
 {
     uint64_t num = rand_uint64();
     return bin2hex64(output, &num);
