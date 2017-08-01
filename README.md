@@ -56,15 +56,13 @@ open `http://127.0.0.1:9411/zipkin/` in your browser, you can see the tracing de
 
 `molten.sampling_type` sampling type choose to use sampling by rate(`1`) or request(`2`), default is `1`;
 
-`molten.sampling_request` sampling by request, set to per min request num, defualt is `10`.
+`molten.sampling_request` sampling by request, set to per min request num, defualt is `1000`.
 
-`molten.sampling_rate_base` determine a request sampled or not by rate, default is `256`.
+`molten.sampling_rate` determine a request sampled or not by rate, default is `64`.
 
 ## Control Config
 
-`molten.ctrl_domain_path` control module unix sock path, default `/tmp/tracing.sock`.
-
-`molten.ctrl_call_interval` control module pull config interval second, default `60`.
+`molten.notify_uri` the uri for molten to notify manger.
 
 ## Report Config
 
@@ -95,7 +93,8 @@ report module output type is same as sink module
 ```shell
 php -d molten.sink_type=2 -d molten.enable_cli=1 -r '$c=curl_init("http://localhost:12345");curl_exec($c);'
 ```
-You can see output below
+You can see output below:
+
 ```
 [{"traceId":"%s","name":"php_curl","version":"php-4","id":"1.1","parentId":"1","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"%s","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"%s","ipv4":"%s"}}],"binaryAnnotations":[{"key":"http.url","value":"http:\/\/localhost:12345\/","endpoint":{"serviceName":"%s","ipv4":"%s"}},{"key":"error","value":"Failed
 connect to localhost:12345; Connection
@@ -122,7 +121,37 @@ Sink is the output where you locate, molten support to standard fd, file, http a
 
 ## Control
 
-Use agent to control our sink type and detail parameter. 
+Use http to control our sampling. 
+
+see molten status, request `http://domain/molten/status` use GET method.
+
+the output is below, already adapt the style of [prometheus](https://prometheus.io).
+
+```
+# HELP molten_request_all Number of all request.
+# TYPE molten_request_all counter
+molten_request_all %d
+# HELP molten_request_capture Number of request be capture.
+# TYPE molten_request_capture counter
+molten_request_capture %d
+# HELP molten_sampling_type the type of sampling.
+# TYPE molten_sampling_type gauge
+molten_sampling_type %d
+# HELP molten_sampling_rate the rate of sampling.
+# TYPE molten_sampling_rate gauge
+molten_sampling_rate %d
+# HELP molten_sampling_request the request be capture one min.
+# TYPE molten_sampling_request gauge
+molten_sampling_request %d
+```
+see molten status, request `http://domain/molten/status` use POST method, 
+
+body is json format, field has the same meaning of config.
+
+```
+{"enable":1,"samplingType":2,"samplingRate":20,"samplingRequest":100}
+
+```
 
 ## Report
 

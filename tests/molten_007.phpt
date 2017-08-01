@@ -9,7 +9,7 @@ molten.tracing_cli=1
 molten.service_name=test
 molten.sink_type=2
 molten.output_type=2
-molten.sampling_rate_base=1
+molten.sampling_rate=1
 molten.span_format=zipkin
 --FILE--
 <?php

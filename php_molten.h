@@ -35,8 +35,10 @@ extern zend_module_entry molten_module_entry;
 #include "molten_chain.h"
 #include "molten_intercept.h"
 #include "molten_span.h"
+#include "molten_shm.h"
 #include "molten_util.h"
 #include "molten_ctrl.h"
+#include "molten_status.h"
 #include "molten_report.h"
 #include "php7_wrapper.h"
 
@@ -52,16 +54,15 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
 
     long                    sampling_type;          /* sampling type */
     long                    sampling_request;       /* sampling by request one minute */
-    long                    sampling_rate_base;     /* tracing sampling rate */
+    long                    sampling_rate;          /* tracing sampling rate */
     char                    *chain_log_path;        /* chain log path */
     char                    *service_name;          /* service name */
     zend_bool               tracing_cli;            /* enable cli  tracing */
     char                    *span_format;           /* the span format */
     char                    *span_id_format;        /* the span id format */
-    char                    *ctrl_domain_path;      /* ctrl domain path */
-    long                    ctrl_call_interval;     /* call ctrl interval */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
+    char                    *notify_uri;            /* notify uri */
     long                    sink_type;              /* log sink type */
     long                    output_type;            /* sink spans output type */
     char                    *sink_http_uri;         /* sink http uri */
@@ -75,6 +76,7 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     mo_span_builder         psb;                    /* span builder */
     mo_ctrl_t               prt;                    /* control module */
     mo_report_t             pre;                    /* report module */
+    mo_shm_t                msm;                    /* shm module */
 
     char                    ip[INET_ADDRSTRLEN];    /* device ip */
     long                    execute_begin_time;     /* execute begin time */

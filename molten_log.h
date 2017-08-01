@@ -23,9 +23,14 @@
 
 #include <stdint.h>
 #include <limits.h>
+#include <string.h>
+#include <libgen.h>
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <error.h>
+#include <fcntl.h>
+#include <time.h>
 #include <sys/types.h>
 
 # if defined(__linux__)
@@ -44,6 +49,9 @@
 #include "php.h"
 #include "Zend/zend_llist.h"
 #include "molten_util.h"
+#include "molten_log.h"
+#include "molten_util.h"
+#include "php7_wrapper.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096 
@@ -120,4 +128,7 @@ void mo_chain_log_flush(mo_chain_log_t *log);
 void mo_chain_log_dtor(mo_chain_log_t *log);
 void mo_chain_add_span(mo_chain_log_t *log, zval *span);
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size);
+#ifdef HAS_CURL
+void send_data_by_http(char *post_uri, char *post_data);
+#endif
 #endif

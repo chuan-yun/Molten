@@ -17,6 +17,10 @@
 #ifndef MOLTEN_CTRL_H
 #define MOLTEN_CTRL_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <stdint.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -28,6 +32,7 @@
 
 #include "molten_util.h"
 #include "molten_struct.h"
+#include "molten_shm.h"
 #include "ext/json/php_json.h"
 #include "php7_wrapper.h"
 #include "SAPI.h"
@@ -43,7 +48,6 @@
 /* molten control detail */
 typedef struct {
     long        change_time;
-    char        language[64];
     uint8_t     enable;
     uint8_t     sampling_type;
     long        sampling_rate;
@@ -53,9 +57,9 @@ typedef struct {
 /* molten report info */
 /* this record info will be clear after every send */
 typedef struct {
-   zval request_all;                /* request all (long)       */
-   zval request_capture;            /* request capture (long)   */
-   zval capture_host;               /* capture host (array)     */
+   unsigned long request_all;                /* request all (long)       */
+   unsigned long request_capture;            /* request capture (long)   */
+   //zval capture_host;                      /* capture host (array)     */
 } mo_repi_t;
 
 /* sampling for request limit */
@@ -66,18 +70,21 @@ typedef struct {
 
 /* molten control module */
 typedef struct{
+    /*
     int         sock;  
     char        domain_path[4096];
+    */
     long        last_req_time;             /* last request time microtime */
     long        req_interval;                /* request interval microtime */
-    mo_ctrm_t   *pcm;                      /* ctrol module */
-    mo_repi_t   *pri;
-    mo_sr_t     *psr;
+    mo_ctrm_t   *mcm;                      /* ctrol module */
+    mo_repi_t   *mri;
+    mo_sr_t     *msr;
 } mo_ctrl_t;            
 
-int mo_ctrl_ctor(mo_ctrl_t *prt, char *domain_path, int req_intval, int sampling_type, long sampling_rate, long sampling_request);
+int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *mst, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request);
 void mo_ctrl_dtor(mo_ctrl_t *prt);
-void mo_ctrl_sr_data(mo_ctrl_t *prt);
-void mo_ctrl_record(mo_ctrl_t *prt, int is_sampled);
+void mo_ctrl_serialize_msg(mo_ctrl_t *mrt, char **buf);
+void mo_ctrl_record(mo_ctrl_t *mrt, int is_sampled);
+int mo_ctrl_update_sampling(char *rec, mo_ctrm_t *mcm);
 void mo_ctrl_sampling(mo_ctrl_t *prt, mo_chain_t *pct);
 #endif

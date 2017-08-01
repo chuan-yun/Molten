@@ -48,7 +48,6 @@ aclocal.m4
 autom4te.cache
 build
 deps
-common
 confdefs.h
 config.cache
 config.guess
@@ -75,5 +74,6 @@ tests/*.out
 tests/*.php
 tests/*.sh
 tests/nctmplog
+tests/tmplog
 tests/*.mem
 tmp-php.ini

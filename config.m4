@@ -63,8 +63,11 @@ if test "$PHP_PRACING" != "no"; then
     molten_log.c \
     molten_intercept.c \
     molten_ctrl.c \
+    common/molten_shm.c \
+    common/molten_lock.c \
     molten_util.c \
     molten_span.c \
+    molten_status.c \
     molten_report.c \
     molten_chain.c"
 
@@ -73,8 +76,8 @@ if test "$PHP_PRACING" != "no"; then
 
   dnl add common include path
   PHP_ADD_INCLUDE($ext_srcdir)
-  dnl PHP_ADD_INCLUDE($ext_srcdir/common)
-  PHP_ADD_INCLUDE($ext_srcdir/deps)
+  PHP_ADD_INCLUDE($ext_srcdir/common)
+  dnl PHP_ADD_INCLUDE($ext_srcdir/deps)
 
   dnl PHP_ADD_MAKEFILE_FRAGMENT
 

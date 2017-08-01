@@ -102,7 +102,6 @@ static int find_server_var(char *key, int key_size, void **ret)
 /* }}} */
 
 /* {{{ join origin url */
-//todo for cache
 static inline zend_bool join_ori_url(smart_string *url, zend_bool trim_query_string)
 {
     smart_string tmp = {0};
