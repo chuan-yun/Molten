@@ -1,5 +1,9 @@
 # molten
 
+> Readme in [Chinese 中文](https://github.com/chuan-yun/Molten/blob/master/README_ZH.md)
+
+[![Build Status](https://travis-ci.org/chuan-yun/Molten.svg?branch=master)](https://travis-ci.org/chuan-yun/Molten)
+
 molten is transparency tool for application tracing it self module call.
 
 It trace php app core call and output zipkin/opentracing format trace log. 
@@ -31,7 +35,7 @@ phpize
 make && make install
 ~~~
 
-`make install` copies `molten.so` to and appropriate location, but you still need to enable the module int the PHP config file, To do so, either edit your php.ini or add ad redis.ini file in `/etc/php5/conf.d` with the following contents:`extension=molten.so`.
+`make install` copies `molten.so` to and appropriate location, but you still need to enable the module int the PHP config file, To do so, either edit your php.ini or add ad molten.ini file in `/etc/php5/conf.d` with the following contents:`extension=molten.so`.
 
 # QuickStart
 
@@ -85,7 +89,7 @@ report module output type is same as sink module
 
 ## Spans Config
 
-`molten.span_format` span format, you can select `zipkin` or `opentracing` or different tracing system.
+`molten.span_format` span format, you can select `zipkin` or `opentracing` for different tracing system.
 
 
 # Verify
@@ -109,7 +113,7 @@ the Config Block above, you can see which feature we support.
 
 we intercept curl,pdo,mysqli,redis,mongodb,memcached extension to build execute time span info. for chain http request, we replace curl_exec,curl_setopt,curl_setopt_array to add http request trace header (x-w-traceid, x-w-spanid and so on).
 
-the span_format is the way to custom span format, for two popular kinds (`zipkin` and `opentracing`)
+the span_format is the way to custom span format, for two popular kinds (`zipkin` and `opentracing`).
 
 ## Sampling
 
@@ -161,7 +165,7 @@ Report base import info which we do not sampled like error list.
 
 Welcome developers who willing to make it better.
 
-the mail list below you can contract for discuss and improve more power
+the mail list below you can contract for discuss and improve more power.
 
 phobosw@gmail.com
 
@@ -169,8 +173,8 @@ silkcutbeta@gmail.com
 
 You may contribute in the following ways:
 
-* [Repost issues and feedback](https://github.com/chuan-yun/Molten/issues)
-* Submit fixes, features via Pull Request
+* [Repost issues and feedback](https://github.com/chuan-yun/Molten/issues).
+* Submit fixes, features via Pull Request.
 
 # License
 
