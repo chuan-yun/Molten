@@ -519,7 +519,7 @@ PHP_MINIT_FUNCTION(molten)
     PTG(pct).sapi = sapi_module.name;
 
     /* almost user use fpm or cli */
-    if (strncasecmp(PTG(pct).sapi, "cli", 3) == 0) {
+    if ((strcmp(PTG(pct).sapi, "cli") == 0)) {
         PTG(pct).is_cli = 1;
     } else {
         PTG(pct).is_cli = 0;
@@ -604,7 +604,7 @@ PHP_RINIT_FUNCTION(molten)
     mo_ctrl_sampling(&PTG(prt), &PTG(pct));
 
     /* Tracing basic info generate */
-    mo_chain_ctor(&PTG(pct), &PTG(pcl), PTG(service_name), PTG(ip));
+    mo_chain_ctor(&PTG(pct), &PTG(pcl), &PTG(psb), PTG(service_name), PTG(ip));
 
     /* Init  intercept module */
     mo_intercept_init(&PTG(pit));

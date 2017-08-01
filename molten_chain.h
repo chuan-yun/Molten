@@ -46,10 +46,9 @@
 #define ADD_HASH_MOLTEN_KEY(ht, pck) mo_zend_hash_update(ht, pck->name, (strlen(pck->name) + 1), \
         (void *)&pck, sizeof(mo_chain_key_t *), NULL)
 
-void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, char *service_name, char *ip);
+void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, char *service_name, char *ip);
 void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb);
 char *mo_rebuild_url(mo_chain_t *pct, char *ori_url);
 void build_http_header(mo_chain_t *pct, zval *header, char *span_id);
-void mo_build_chain_header(mo_chain_t *pct, char *ip);
 void mo_obtain_local_ip(char *ip);
 #endif

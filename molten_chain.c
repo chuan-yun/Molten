@@ -16,6 +16,8 @@
 
 #include "molten_chain.h"
 
+void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip);
+
 /* only destory val key */
 #if PHP_VERSION_ID < 70000
 static void mo_key_destory_func(void *pDest)
@@ -78,7 +80,7 @@ void mo_obtain_local_ip(char *ip)
 /* }}} */
 
 /* build chain header */
-void mo_build_chain_header(mo_chain_t *pct, char *ip)
+void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
 {
     /* loaded header */
     mo_chain_header_t *pch = &(pct->pch);
@@ -121,7 +123,7 @@ void mo_build_chain_header(mo_chain_t *pct, char *ip)
 
     /* generate span_id */
     if (!pch->span_id->val) {
-        pch->span_id->val = estrdup("1");
+        psb->build_span_id(&pch->span_id->val, NULL, 0);
     }
 
     /* sampled, after we will do it dynamics */
@@ -322,7 +324,7 @@ void mo_chain_header_dtor(mo_chain_header_t *pch)
 }
 
 /* pt chain ctor */
-void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, char *service_name, char *ip)
+void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, char *service_name, char *ip)
 {
     pct->pcl = pcl;
    
@@ -358,7 +360,7 @@ void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, char *service_name, cha
 
         /* build chain header */
         mo_init_chain_header(&(pct->pch));
-        mo_build_chain_header(pct, ip);
+        mo_build_chain_header(pct, psb, ip);
     }
 }
 

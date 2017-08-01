@@ -44,6 +44,13 @@ sh run.sh
 ~~~
 在浏览器中打开 `http://127.0.0.1:9411/zipkin/`, 能够看见链路信息。
 
+如果你认为上述太简单，你可以做下面的操作。
+~~~
+cd example
+sh complex.sh
+~~~
+怎么样，是不是很酷。
+
 `注意` 如果没有看到详细信息，那么EndTime选项中添加1小时。
 
 # 配置
@@ -65,13 +72,11 @@ sh run.sh
 
 ## 控制模块配置
 
-`molten.ctrl_domain_path` 控制模块unix通信地址 `/tmp/tracing.sock`。
-
-`molten.ctrl_call_interval` 控制模块调用间隔, 默认 `60`。
+`molten.notify_uri` 通知管理中心的uri。
 
 ## 上报模块配置
 
-上报模块使用和数据模块相同的输出类型
+上报模块使用和数据模块相同的输出类型。
 
 `molten.report_interval` 数据模块调用间隔, 默认 `60`。
 
@@ -125,7 +130,37 @@ molten当前支持3种数据落地方式，标准输出，文件，http。并且
 
 ## 控制
 
-使用agent工具能够控制molten的工作方式。
+使用http协议控制探针的行为。
+
+查看molten的状态, 通过GET方法请求`http://domain/molten/status`。
+
+输出内容如下，已经适配了[prometheus](https://prometheus.io)格式。
+
+```
+# HELP molten_request_all Number of all request.
+# TYPE molten_request_all counter
+molten_request_all %d
+# HELP molten_request_capture Number of request be capture.
+# TYPE molten_request_capture counter
+molten_request_capture %d
+# HELP molten_sampling_type the type of sampling.
+# TYPE molten_sampling_type gauge
+molten_sampling_type %d
+# HELP molten_sampling_rate the rate of sampling.
+# TYPE molten_sampling_rate gauge
+molten_sampling_rate %d
+# HELP molten_sampling_request the request be capture one min.
+# TYPE molten_sampling_request gauge
+molten_sampling_request %d
+```
+修改molten采样方式, 使用POST方法请求`http://domain/molten/status`。
+
+数据是json格式，字段和配置项中的含义是一致的。
+
+```
+{"enable":1,"samplingType":2,"samplingRate":20,"samplingRequest":100}
+
+```
 
 ## 上报
 
