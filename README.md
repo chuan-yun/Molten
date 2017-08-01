@@ -22,8 +22,7 @@ base on php, already run on thousand instance on production env.
 4. [Verify](#verify)
 5. [Features](#features)
 6. [Contributing](#contributing)
-6. [License](#license)
-
+7. [License](#license)
 
 # Installing
 
@@ -45,6 +44,14 @@ sh run.sh
 ~~~
 open `http://127.0.0.1:9411/zipkin/` in your browser, you can see the tracing detail in it.
 
+if you think above is too simple, you also can do this.
+
+~~~
+cd example
+sh complex.sh
+~~~
+it is cool, alright?
+
 `NOTICE` if you not see the trace, you select EndTime +1 hour.
 
 # Configure
@@ -58,7 +65,7 @@ open `http://127.0.0.1:9411/zipkin/` in your browser, you can see the tracing de
 
 ## Sampling Config
 
-`molten.sampling_type` sampling type choose to use sampling by rate(`1`) or request(`2`), default is `1`;
+`molten.sampling_type` sampling type choose to use sampling by rate(`1`) or request(`2`), default is `1`.
 
 `molten.sampling_request` sampling by request, set to per min request num, defualt is `1000`.
 
@@ -75,7 +82,6 @@ report module output type is same as sink module
 `molten.report_interval` reporter call interval, default `60`.
 
 `molten.report_limit`  reporter list limit current only for error num, default `100`.
-
 
 ## Sink Config
 
@@ -148,7 +154,7 @@ molten_sampling_rate %d
 # TYPE molten_sampling_request gauge
 molten_sampling_request %d
 ```
-see molten status, request `http://domain/molten/status` use POST method, 
+modify molten sampling, request `http://domain/molten/status` use POST method, 
 
 body is json format, field has the same meaning of config.
 

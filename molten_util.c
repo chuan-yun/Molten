@@ -98,11 +98,15 @@ void build_span_id_random(char **span_id, char *parent_span_id, int span_count)
 /* so we will build our span id contact the parent_span_id */
 void build_span_id_level(char **span_id, char *parent_span_id, int span_count)
 {
-    /* len = . + \0 + max_spans_len + parent_len */
-    int len = 2 + MAX_SPANS_LEN + strlen(parent_span_id); 
+    if (parent_span_id != NULL) {
+        /* len = . + \0 + max_spans_len + parent_len */
+        int len = 2 + MAX_SPANS_LEN + strlen(parent_span_id); 
 
-    *span_id  = emalloc(len);
-    memset(*span_id, 0x00, len);
-    sprintf(*span_id, "%s.%d", parent_span_id, span_count);
-    (*span_id)[len-1] = '\0';
+        *span_id  = emalloc(len);
+        memset(*span_id, 0x00, len);
+        sprintf(*span_id, "%s.%d", parent_span_id, span_count);
+        (*span_id)[len-1] = '\0';
+    } else {
+        *span_id = estrdup("1");
+    }
 }

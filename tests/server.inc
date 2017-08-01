@@ -1,8 +1,4 @@
 <?php
-//$hostname = isset($argv[1]) ? $argv[1] : 'localhost';
-//$port = isset($argv[2]) ? $argv[2] : 8964;
-//$address = $hostname . ":" . $port;
-//$sample = isset($argv[3]);
 include_once 'config.inc';
 
 function truncate_file($path)
@@ -84,6 +80,3 @@ function molten_cli_server_start($hostname, $port, $sample) {
 	// sleeping doesn't work.
     return $address;
 }
-
-//molten_cli_server_start("localhost", '8967', 1);
-//sleep(10000);

@@ -46,40 +46,6 @@ typedef struct {
     uint32_t span_count;        /* current span count */
 } span_context;
 
-/* stack */
-//#define MO_STACK_BLOCK_SIZE     16;
-//#define MO_STACK_ELE(stack, n)  ((void *)((char *) (stack)->elements + (stack)->size * (n)))
-//typedef void(*dtor_func)(void *ele);
-//typedef struct {
-//    int size,top,max;
-//    void *elements; 
-//    dtor_func dtor;
-//}mo_stack;
-//
-///* stack func */
-//void mo_stack_init(mo_stack *stack, dtor_funct dtor, int size)
-//{
-//    stack->size = size;
-//    stack->top = 0;
-//    stack->max = 0;
-//    stack->elements = NULL;
-//    stack->dtor = dtor;
-//}
-//
-//void mo_stack_push(mo_stack *stack, const void *ele)
-//{
-//    if (stack->top  >= stack->max) {
-//        stack->max += MO_STACK_BLOCK_SIZE;
-//        stack->elements = safe_erealloc(stack->elements, stack->size, stack->max, 0);
-//    }
-//    memcpy(MO_STACK_ELE(stack, stack->top), ele, stack->size);
-//    stack->top++;
-//}
-//
-//void mo_stack_pop(mo_stack *stack)
-//{
-//}
-
 /* span id builder */
 typedef void (*build_span_id_func)(char **span_id, char *parent_span_id, int span_count);
 
