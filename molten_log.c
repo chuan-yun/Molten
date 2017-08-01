@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
-#include <string.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <error.h>
-#include <fcntl.h>
-#include <time.h>
-#include "molten_log.h"
-#include "molten_util.h"
-#include "php7_wrapper.h"
+#include "molten_log.h" 
+
 #define CLOSE_LOG_FD do {                   \
         close(log->fd);                     \
         log->fd = -1;                       \
@@ -34,17 +25,17 @@ static int mo_mkdir_recursive(const char *dir);
 static void generate_log_path(mo_chain_log_t *log);
 
 #ifdef HAS_CURL
-/* {{{ trans log by http , current use php_stream */
-void trans_log_by_http(mo_chain_log_t *log, char *post_data)
+/* {{{ trans log by http , current use curl not php_stream */
+void send_data_by_http(char *post_uri, char *post_data)
 {
-    if (log->post_uri != NULL && strlen(log->post_uri) > 5) {
+    if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
             CURLcode res;
             struct curl_slist *list = NULL;
 
             list = curl_slist_append(list, "Content-Type: application/json");
-            curl_easy_setopt(curl, CURLOPT_URL, log->post_uri);
+            curl_easy_setopt(curl, CURLOPT_URL, post_uri);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
             curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 100L);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
@@ -339,7 +330,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
             break;
 #ifdef HAS_CURL
         case SINK_HTTP:
-            trans_log_by_http(log, bytes);
+            send_data_by_http(log->post_uri, bytes);
             break;
 #endif
 
@@ -356,6 +347,7 @@ void mo_chain_log_flush(mo_chain_log_t *log)
 {
     char *dname; 
     ssize_t written_bytes = 0;
+    smart_string tmp = {0};
 
     /* Init json encode function */
     zval func;
@@ -365,56 +357,39 @@ void mo_chain_log_flush(mo_chain_log_t *log)
         /* Encode one span one line , easy for debug */
         HashTable *ht = Z_ARRVAL_P(log->spans);
         zval *span;
-        zval ret;
-        zval *args[1];
-        int result;
 #if PHP_VERSION_ID < 70000
         for(zend_hash_internal_pointer_reset(ht); 
                 zend_hash_has_more_elements(ht) == SUCCESS;
                 zend_hash_move_forward(ht)) {
             if (mo_zend_hash_get_current_data(ht, (void **)&span) == SUCCESS) {
-                args[0] = span;
-                result = mo_call_user_function(EG(function_table), (zval **)NULL, &func, &ret, 1, args);
-                if (result == SUCCESS) {
-                    if (MO_Z_TYPE_P(&ret) != IS_STRING) {
-                        zval_dtor(&ret);
-                        goto end;
-                    }
-                    mo_chain_log_add(log, Z_STRVAL(ret), Z_STRLEN(ret));
-                    zval_dtor(&ret);
+                mo_php_json_encode(&tmp, span, 0);
+                if (smart_string_str(tmp) != NULL) {
+                    mo_chain_log_add(log, smart_string_str(tmp), smart_string_len(tmp));
+                    smart_string_free(&tmp);
+                } else {
+                    goto end;
                 }
             }
         }
 #else
         ZEND_HASH_FOREACH_VAL(ht, span) {
             if (MO_Z_TYPE_P(span) == IS_ARRAY) {
-                args[0] = span;
-                result = mo_call_user_function(EG(function_table), (zval **)NULL, &func, &ret, 1, args);
-                if (result == SUCCESS) {
-                    if (MO_Z_TYPE_P(&ret) != IS_STRING) {
-                        zval_dtor(&ret);
-                        goto end;
-                    }
-                    mo_chain_log_add(log, Z_STRVAL(ret), Z_STRLEN(ret));
-                    zval_dtor(&ret);
+                mo_php_json_encode(&tmp, span, 0);
+                if (smart_string_str(tmp) != NULL) {
+                    mo_chain_log_add(log, smart_string_str(tmp), smart_string_len(tmp));
+                    smart_string_free(&tmp);
+                } else {
+                    goto end;
                 }
             }
         } ZEND_HASH_FOREACH_END();
 #endif
     } else if (log->output_type == SPANS_WRAP) {
         /* Load span from log */
-        zval ret;
-        zval *args[1];
-        args[0] = log->spans;
-        int result = mo_call_user_function(EG(function_table), (zval **)NULL, &func, &ret, 1, args);
-        if (result == SUCCESS) {
-            if (MO_Z_TYPE_P(&ret) != IS_STRING) {
-                zval_dtor(&ret);
-                goto end;
-            }
-            
-            mo_chain_log_add(log, Z_STRVAL(ret), Z_STRLEN(ret));
-            zval_dtor(&ret);
+        mo_php_json_encode(&tmp, log->spans, 0);
+        if (smart_string_str(tmp) != NULL) {
+            mo_chain_log_add(log, smart_string_str(tmp), smart_string_len(tmp));
+            smart_string_free(&tmp);
         } else {
             goto end;
         }

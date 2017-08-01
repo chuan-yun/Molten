@@ -146,11 +146,12 @@ static inline int mo_zend_hash_get_current_data(HashTable *ht, void **v)
 
 /* smart string */
 #include "ext/standard/php_smart_string.h"
+#include "Zend/zend_smart_str.h"
 
 /* php_json_encode */
 static void inline mo_php_json_encode(smart_string *s, zval *z, int options)
 {
-    smart_str tmp; 
+    smart_str tmp = {0}; 
     php_json_encode(&tmp, z, options);      
     smart_string_appendl(s, ZSTR_VAL(tmp.s), ZSTR_LEN(tmp.s));
     smart_str_free(&tmp);

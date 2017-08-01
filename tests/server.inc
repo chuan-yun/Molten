@@ -55,7 +55,7 @@ function molten_cli_server_start($hostname, $port, $sample) {
         $cmd .= " {$router}";
 		$handle = proc_open(addslashes($cmd), $descriptorspec, $pipes, $doc_root, NULL, array("bypass_shell" => true,  "suppress_errors" => true));
 	} else {
-		$cmd = "exec {$php_executable} -t {$doc_root} -n -d extension={$doc_root}/../modules/molten.so -d molten.enable=1 -d molten.sampling_rate_base={$sample} -S " . $address;
+		$cmd = "exec {$php_executable} -t {$doc_root} -n -d extension=molten.so -d molten.enable=1 -d molten.sampling_rate={$sample} -S " . $address;
 		$cmd .= " {$router}";
 		$cmd .= " 2>/dev/null";
 		$handle = proc_open($cmd, $descriptorspec, $pipes, $doc_root);

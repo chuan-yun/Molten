@@ -4,7 +4,7 @@ Bug dup sampled header
 molten.enable=1
 molten.tracing_cli=1
 molten.service_name=test
-molten.sampling_rate_base=12341234
+molten.sampling_rate=12341234
 --FILE--
 <?php
 include 'config.inc';
