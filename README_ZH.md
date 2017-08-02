@@ -101,7 +101,7 @@ sh complex.sh
 # 验证
 
 ```shell
-php -d molten.sink_type=2 -d molten.enable_cli=1 -r '$c=curl_init("http://localhost:12345");curl_exec($c);'
+php -d extension=molten.so -d molten.enable=1 -d molten.sink_type=2 -d molten.tracing_cli=1 -d molten.sampling_rate=1 -r '$c=curl_init("http://localhost:12345");curl_exec($c);'
 ```
 可以看到如下输出：
 ```
