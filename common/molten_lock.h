@@ -45,11 +45,6 @@ typedef struct {
     int fd;
 } mo_fcntl_lock_t;
 
-
-#ifndef MO_SPIN_LOCK 
-pthread_rwlockattr_t    mo_lock_attr;
-#endif
-
 int mo_lock_create(mo_lock_t *lock);
 void mo_lock_rlock(mo_lock_t *lock);
 void mo_lock_wlock(mo_lock_t *lock);
