@@ -17,15 +17,33 @@
 #ifndef MOLTEN_INTERCEMO_H
 #define MOLTEN_INTERCEMO_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "stdint.h"
 
-#include "php7_wrapper.h"
 #include "php.h"
 
-#include "molten_log.h"
-#include "molten_util.h"
+#ifdef HAS_PDO
+#include "ext/pdo/php_pdo_driver.h"
+#endif
+
+#ifdef HAS_MYSQLND
+#include "ext/mysqli/php_mysqli_structs.h"
+#include "ext/mysqlnd/mysqlnd_structs.h"
+#endif
+
+#include "ext/pcre/php_pcre.h"
+#include "Zend/zend_exceptions.h"
+
+#include "php7_wrapper.h"
 #include "molten_struct.h"
 #include "molten_span.h"
+#include "molten_log.h"
+#include "molten_util.h"
+#include "molten_chain.h"
+
 
 #define HEADER_INTERNAL_CALL        1
 #define HEADER_OUT_CALL             0

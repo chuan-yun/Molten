@@ -13,17 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "php.h"
-#include "ext/pdo/php_pdo_driver.h"
-#include "ext/mysqli/php_mysqli_structs.h"
-#include "ext/mysqlnd/mysqlnd_structs.h"
-#include "ext/pcre/php_pcre.h"
-#include "Zend/zend_exceptions.h"
-
 #include "molten_intercept.h"
-#include "molten_log.h"
-#include "molten_util.h"
-#include "molten_chain.h"
 
 #define RETURN_Z_STRING(zval) (zval && (MO_Z_TYPE_P(zval) == IS_STRING) ? Z_STRVAL_P(zval) : "")
 #define RETURN_Z_LONG(zval) (zval && (MO_Z_TYPE_P(zval) == IS_LONG) ? Z_LVAL_P(zval) : 0)
@@ -302,11 +292,6 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
 /* }}} */
 
 #if PHP_VERSION_ID < 70000
-#define GET_PDO_DBH  pdo_dbh_t *dbh = zend_object_store_get_object(object);
-#else
-#define GET_PDO_DBH  pdo_dbh_t *dbh = Z_PDO_DBH_P(object);
-#endif                                                                                                                                      
-#if PHP_VERSION_ID < 70000
 #define SET_SPAN_EXCEPTION(exception_ce,pit,frame,service_name,host,port)          do {                                                   \
         if (instanceof_function(Z_OBJCE_P(EG(exception)), exception_ce) == 1) {                                                 \
             zval *message = mo_zend_read_property(exception_ce, EG(exception), "message", sizeof("message") - 1, 1);            \
@@ -333,12 +318,16 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
         }                                                                                                   \
 }while(0)
 
+#ifdef HAS_PDO
 #define PDO_SET_EXCEPTION(pit)  do {                                            \
         if (EG(exception) != NULL) {                                            \
             zend_class_entry *pdo_exception_ce = php_pdo_get_exception();       \
             SET_SPAN_EXCEPTION_EX(pdo_exception_ce, frame, pit);                \
         }                                                                       \
 }while(0)
+#else
+#define PDO_SET_EXCEPTION(pit)
+#endif
 
 
 static char *pcre_common_match(char *pattern, int len, char *subject) 
@@ -410,7 +399,7 @@ static void analyze_data_source(zval *span, char *db_type, char *data_source, mo
 static void pdo_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     zval *object = frame->object;    
-    GET_PDO_DBH
+
     GET_FUNC_ARG(fir_arg,0);
     zval *span;
     char span_name[64] = {0};
@@ -423,16 +412,26 @@ static void pdo_record(mo_interceptor_t *pit, mo_frame_t *frame)
         pit->psb->span_add_ba_ex(span,  "db.statement", RETURN_Z_STRING(fir_arg), frame->exit_time, pit->pct, BA_NORMAL);
     }
 
-    /* db.type */
-    if (dbh != NULL && dbh->driver != NULL && dbh->driver->driver_name != NULL) {
-        memcpy(db_type, (char *)dbh->driver->driver_name, dbh->driver->driver_name_len);
-        pit->psb->span_add_ba_ex(span,  "db.type", db_type, frame->exit_time, pit->pct, BA_NORMAL);
-    }
+#ifdef HAS_PDO
+#if PHP_VERSION_ID < 70000
+    pdo_dbh_t *dbh = zend_object_store_get_object(object);
+#else
+    pdo_dbh_t *dbh = Z_PDO_DBH_P(object);
+#endif 
 
-    /* db.data_source */ 
-    if (dbh != NULL && dbh->data_source != NULL && db_type[0] != '\0') {
-        analyze_data_source(span, db_type, (char *)dbh->data_source, frame, pit);
+    if (dbh != NULL) {
+        /* db.type */
+        if (dbh->driver != NULL && dbh->driver->driver_name != NULL) {
+            memcpy(db_type, (char *)dbh->driver->driver_name, dbh->driver->driver_name_len);
+            pit->psb->span_add_ba_ex(span,  "db.type", db_type, frame->exit_time, pit->pct, BA_NORMAL);
+        }
+
+        /* db.data_source */ 
+        if (dbh->data_source != NULL && db_type[0] != '\0') {
+            analyze_data_source(span, db_type, (char *)dbh->data_source, frame, pit);
+        }
     }
+#endif
 
     /* error */
     zval *ret = frame->ori_ret;
@@ -463,6 +462,7 @@ static void pdo_statement_record(mo_interceptor_t *pit, mo_frame_t *frame)
     char db_type[64]={0};
     pit->psb->start_span_ex(&span, "PDOStatement::execute", pit->pct, frame, AN_CLIENT);
 
+#ifdef HAS_PDO
 #if PHP_VERSION_ID < 70000
     pdo_stmt_t *stmt = (pdo_stmt_t *)zend_object_store_get_object(object); 
 #else
@@ -485,6 +485,7 @@ static void pdo_statement_record(mo_interceptor_t *pit, mo_frame_t *frame)
             analyze_data_source(span, db_type, (char *)stmt->dbh->data_source, frame, pit);
         }
     }
+#endif
 
     /* todo retrive data from stmt->bound_params and stmt->bound_columns */
    
@@ -905,6 +906,7 @@ static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int proced
      * mysql->mysql->data->host
      * mysql->mysql->data->port
      */
+#ifdef HAS_MYSQLND
     MY_MYSQL *mysql;
     zval *mysql_link;
     if (procedural == 1) {
@@ -931,6 +933,7 @@ static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int proced
 #endif
         }
     }
+#endif
 }
 
 static void db_query_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural, char *component)
@@ -1012,6 +1015,7 @@ static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int pro
      * stmt->stmt->data->conn->host
      * stmt->stmt->data->conn->host
      */
+#ifdef HAS_MYSQLND
     MY_STMT *stmt;
     zval *mysql_stmt;
     if (procedural == 1) {
@@ -1038,7 +1042,7 @@ static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int pro
 #endif
         }
     }
-
+#endif
 }
 
 static void mysqli_stmt_prepare_common_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural)
