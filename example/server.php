@@ -47,7 +47,6 @@ server_start("localhost", 8971, "response.php", "base_server");
 server_start("localhost", 8972, "http_request.php", "t1_server");
 server_start("localhost", 8973, "http_request.php", "t2_server");
 
-
 $url1 = "http://localhost:8972";
 $ch = curl_init($url1);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

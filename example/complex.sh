@@ -1,16 +1,6 @@
 #/bin/bash
-if [ ! -f zipkin.jar ]; then
-    wget -O zipkin.jar 'https://search.maven.org/remote_content?g=io.zipkin.java&a=zipkin-server&v=LATEST&c=exec'
-fi
-export STORAGE_TYPE=mem
-export HTTP_COLLECTOR_ENABLE=true
 
-zipkin=`ps aux|grep zipkin|grep -v grep`
-
-if [ -z "$zipkin" ]; then
-java -jar zipkin.jar --logging.level.zipkin=DEBUG 2>&1 >/dev/null &
-sleep 10
-fi
+sh zipkin.sh
 
 export TEST_PHP_EXECUTABLE=`which php`
 
