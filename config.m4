@@ -83,6 +83,30 @@ if test "$PHP_PRACING" != "no"; then
       AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
   fi
 
+  dnl check for pdo
+  AC_MSG_CHECKING([check for pdo])
+  pdo_inc_path=""
+  if test -f "$abs_srcdir/include/php/ext/pdo/php_pdo_driver.h"; then
+    pdo_inc_path="$abs_srcdir/include/php"
+  elif test -f "$abs_srcdir/ext/pdo/php_pdo_driver.h"; then
+    pdo_inc_path="$abs_srcdir"
+  elif test -f "$phpincludedir/ext/pdo/php_pdo_driver.h"; then
+    pdo_inc_path="$phpincludedir"
+  else
+    for i in php php4 php5 php6 php7; do
+      if test -f "$prefix/include/$i/ext/pdo/php_pdo_driver.h"; then
+        pdo_inc_path="$prefix/include/$i"
+      fi
+    done
+  fi
+
+  if test "$pdo_inc_path" = ""; then
+      AC_MSG_RESULT([pdo not found, pdo support will not complete])
+  else
+      AC_MSG_RESULT([has found pdo include file])
+      AC_DEFINE(HAS_PDO, 1, [we support pdo])
+  fi
+
   dnl check for curl
   AC_MSG_CHECKING([for curl-config])
   CURL_CONFIG="curl-config"
