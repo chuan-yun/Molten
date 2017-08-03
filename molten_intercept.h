@@ -17,6 +17,10 @@
 #ifndef MOLTEN_INTERCEMO_H
 #define MOLTEN_INTERCEMO_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "stdint.h"
 
 #include "php7_wrapper.h"

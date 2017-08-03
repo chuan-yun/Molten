@@ -15,8 +15,15 @@
  */
 #include "php.h"
 #include "ext/pdo/php_pdo_driver.h"
+
+#ifdef HAS_MYSQLI
 #include "ext/mysqli/php_mysqli_structs.h"
+#endif
+
+#ifdef HAS_MYSQLND
 #include "ext/mysqlnd/mysqlnd_structs.h"
+#endif
+
 #include "ext/pcre/php_pcre.h"
 #include "Zend/zend_exceptions.h"
 
@@ -905,6 +912,7 @@ static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int proced
      * mysql->mysql->data->host
      * mysql->mysql->data->port
      */
+#ifdef HAS_MYSQLND
     MY_MYSQL *mysql;
     zval *mysql_link;
     if (procedural == 1) {
@@ -931,6 +939,7 @@ static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int proced
 #endif
         }
     }
+#endif
 }
 
 static void db_query_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural, char *component)
@@ -1012,6 +1021,7 @@ static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int pro
      * stmt->stmt->data->conn->host
      * stmt->stmt->data->conn->host
      */
+#ifdef HAS_MYSQLND
     MY_STMT *stmt;
     zval *mysql_stmt;
     if (procedural == 1) {
@@ -1038,7 +1048,7 @@ static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int pro
 #endif
         }
     }
-
+#endif
 }
 
 static void mysqli_stmt_prepare_common_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural)
