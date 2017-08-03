@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
-#include <error.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <time.h>
 #include <sys/types.h>
