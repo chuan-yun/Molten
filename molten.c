@@ -473,6 +473,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_SYSTEM, OnUpdateString, sink_http_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",             PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_brokers",    "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_brokers, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
 PHP_INI_END()
@@ -482,6 +483,10 @@ static void php_trace_init_globals(zend_molten_globals *ptg)
 {
     ptg->enable_sapi = 1;
     ptg->in_request = 0;
+
+    if (gethostname(ptg->host_name, sizeof(ptg->host_name)) != 0) {
+        memcpy(ptg->host_name, "localhost", sizeof("localhost") - 1);
+    }
 }
 
 /* {{{ PHP MINIT Function */
@@ -530,7 +535,7 @@ PHP_MINIT_FUNCTION(molten)
     mo_shm_ctor(&PTG(msm));   
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
     mo_span_ctor(&PTG(psb), PTG(span_format), PTG(span_id_format));
-    mo_chain_log_ctor(&PTG(pcl), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri));
+    mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
     mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
 

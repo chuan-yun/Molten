@@ -28,6 +28,8 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
@@ -62,20 +64,21 @@
 #define DEFAULT_PATH    DEFAULT_LOG_DIR"tracing"
 #define LOG_FORMAT      "%Y%m%d" 
 
-#define SINK_NONE   0
-#define SINK_LOG    1<<0
-#define SINK_STD    1<<1
+#define SINK_NONE       0
+#define SINK_LOG        1
+#define SINK_STD        2
+#define SINK_SYSLOG     3       /* only for unx domain udp syslog */
 
 #ifdef HAS_CURL
-#define SINK_HTTP   1<<2
+#define SINK_HTTP       4
 #endif
 
 #ifdef HAS_KAFKA 
-#define SINK_KAFKA  1<<3
+#define SINK_KAFKA      5
 #endif
 
-#define SPANS_WRAP  1<<0
-#define SPANS_BREAK 1<<1
+#define SPANS_WRAP      1<<0
+#define SPANS_BREAK     1<<1
 
 /* http sink */
 /* current use php_stream or libcurl, we can check */
@@ -99,6 +102,7 @@ typedef struct {
     uint8_t sink_type;          /* log sink type */
     uint8_t output_type;        /* sink output type */
     uint16_t support_type;      /* sink support type */
+    char *host_name;            /* link to global host name */
 
     /* sink log file */
     char *path;
@@ -108,6 +112,11 @@ typedef struct {
     ino_t ino;
     char *format; 
 
+    /* sink syslog */
+    char *unix_socket;            /* unix domain udp syslog */
+    int sfd;                    /* unix domain syslog fd */
+    struct sockaddr_un server;  /* server addr */
+
     /* sink http */
     char *post_uri;             /* post uri */
 
@@ -115,13 +124,14 @@ typedef struct {
     char *brokers;              /* brokers */
     char *topic;                /* topic */
     char *buf;
+
     uint64_t total_size;
     uint64_t alloc_size;
     zval *spans;
 } mo_chain_log_t;
 
 /* function */
-void mo_chain_log_ctor(mo_chain_log_t *log, char *log_path, long sink_type, long output_type, char *post_uri);
+void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
 int mo_chain_log_set_file_path(char *new_path);
 void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size);
 void mo_chain_log_flush(mo_chain_log_t *log);

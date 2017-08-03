@@ -42,6 +42,10 @@ extern zend_module_entry molten_module_entry;
 #include "molten_report.h"
 #include "php7_wrapper.h"
 
+#ifndef HOST_NAME_MAX
+#define HOST_NAME_MAX 255
+#endif
+
 PHP_MINIT_FUNCTION(molten);
 PHP_MSHUTDOWN_FUNCTION(molten);
 PHP_RINIT_FUNCTION(molten);
@@ -68,6 +72,7 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     char                    *sink_http_uri;         /* sink http uri */
     char                    *sink_kafka_brokers;    /* sink kafka brokers */
     char                    *sink_kafka_topic;      /* sink kafka topic */
+    char                    *sink_syslog_unix_socket; /* sink syslog unix */
     smart_string            request_uri;            /* request url */
 
     mo_chain_t              pct;                    /* chain module */
@@ -79,6 +84,7 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     mo_shm_t                msm;                    /* shm module */
 
     char                    ip[INET_ADDRSTRLEN];    /* device ip */
+    char                    host_name[HOST_NAME_MAX];   /* host name */
     long                    execute_begin_time;     /* execute begin time */
     zend_bool               enable_sapi;            /* enable_sapi */
     zend_bool               in_request;             /* determine in requeset life time */

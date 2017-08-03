@@ -112,15 +112,50 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
 /* }}} */
 #endif
 
+/* {{{ init syslog unix domain udp sink */
+static void syslog_sink_init(mo_chain_log_t *log)
+{
+        if (log->unix_socket == NULL) {
+            return;
+        }
+
+        struct sockaddr_un client;
+        memset(&log->server, 0x00, sizeof(struct sockaddr_un));
+        log->server.sun_family = AF_UNIX;
+        strncpy(log->server.sun_path, log->unix_socket, sizeof(log->server.sun_path) - 1);
+
+        log->sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
+        if (log->sfd == -1) {
+            MOLTEN_ERROR(" init syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
+            return;
+        }
+
+        memset(&client, 0x00, sizeof(struct sockaddr_un));
+        client.sun_family = AF_UNIX;
+        strncpy(client.sun_path, log->unix_socket, sizeof(client.sun_path) - 1);
+        if (bind(log->sfd, (struct sockaddr *)&client, sizeof(struct sockaddr_un)) == -1) {
+            MOLTEN_ERROR(" bind syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
+            return;
+        }
+}
+/* }}} */
+
+/* {{{ syslog shutdown */
+static void syslog_sink_shutdown(mo_chain_log_t *log) {
+    if (log->sfd > 0) close(log->sfd);
+}
+/* }}} */
 
 /* {{{ Log module ctor */
-void mo_chain_log_ctor(mo_chain_log_t *log, char *log_path, long sink_type, long output_type, char *post_uri)
+void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket)
 {
     log->path = log_path;
     log->tm_yday = -1;
     log->fd = -1;
     log->ino = 0;
+    log->host_name = host_name;
     log->sink_type = sink_type;
+    log->unix_socket = syslog_unix_socket;
     log->output_type = output_type;
     log->post_uri = post_uri;
     memset(log->real_path, 0x00, sizeof(log->real_path));
@@ -143,8 +178,15 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *log_path, long sink_type, long
     if (!(sink_type & log->support_type)) {
         log->sink_type = SINK_NONE;
     }
+    
+    /* todo for func cb, current use if else */
+    if (log->sink_type == SINK_LOG) {
+        generate_log_path(log);
+    }
 
-    generate_log_path(log);
+    if (log->sink_type == SINK_SYSLOG) {
+        syslog_sink_init(log);
+    }
 }
 /* }}} */
 
@@ -152,8 +194,17 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *log_path, long sink_type, long
 void mo_chain_log_dtor(mo_chain_log_t *log)
 {
     pefree(log->buf, 1);
-    if (log->fd != -1) {
-        CLOSE_LOG_FD;
+
+    /* log fd close */
+    if (log->sink_type == SINK_LOG) {
+        if (log->fd != -1) {
+            CLOSE_LOG_FD;
+        }
+    }
+
+    /* unix fd close */
+    if (log->sink_type == SINK_SYSLOG) {
+        syslog_sink_shutdown(log);
     }
 }
 /* }}} */
@@ -284,8 +335,8 @@ static void generate_log_path(mo_chain_log_t *log)
 }
 /* }}} */
 
-/* {{{ write log fd */
-static void inline write_log_fd(mo_chain_log_t *log, char *bytes, int size)
+/* {{{ flush log to fd */
+static void inline flush_log_to_fd(mo_chain_log_t *log, char *bytes, int size)
 {
     int written_bytes = 0;
     do {
@@ -298,13 +349,72 @@ static void inline write_log_fd(mo_chain_log_t *log, char *bytes, int size)
 }
 /* }}} */
 
+/* {{{ flush log to syslog */
+/* 
+ * facility 20 (ocal use 4) and serverity 6 
+ * see rfc3164 
+ *
+ */
+static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int size)
+{
+    if (log->sfd < 0) {
+        return;
+    }
+
+    /* build syslog header */
+    char str_time[64];
+    char sys_log_header[256];
+    int header_len;
+    int send_len;
+    time_t t;
+    struct tm *tmp;
+
+    t = time(NULL);
+    tmp = localtime(&t);
+    if (tmp == NULL) {
+        MOLTEN_ERROR("[sink] get local time error");
+        return;
+    }
+    
+    if (strftime(str_time, sizeof(str_time), "%b %d %H:%M:%S", tmp) == 0) {
+        MOLTEN_ERROR("[sink] format strftime error");
+        return;
+    }
+
+    memset(sys_log_header, 0x00, sizeof(sys_log_header));
+    header_len = sprintf(sys_log_header, "<166> %s %s %s:", str_time, log->host_name, "molten");
+    send_len = size + header_len; 
+
+    /* here is two buffer, we need sendmsg */
+    struct msghdr msg;
+    struct iovec vec[2];
+    msg.msg_name = &log->server;
+    msg.msg_namelen = sizeof(struct sockaddr_un);
+    msg.msg_iov = vec;
+    msg.msg_iovlen = 2;
+    
+    vec[0].iov_base = sys_log_header;
+    vec[0].iov_len = header_len;
+    vec[1].iov_base = bytes;
+    vec[1].iov_len = size;
+    
+    msg.msg_control = 0;
+    msg.msg_controllen = 0;
+    msg.msg_flags = 0;
+
+    if (sendmsg(log->sfd, &msg, 0) != send_len) {
+        MOLTEN_ERROR("[sink] send msg error:[%d]", errno);
+    }
+}
+/* }}} */
+
 /* {{{ pt write info to log */
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size) 
 {
     switch (log->sink_type) {
         case SINK_STD:
             log->fd = 1;
-            write_log_fd(log, bytes, size);
+            flush_log_to_fd(log, bytes, size);
             break;
         case SINK_LOG:
 
@@ -326,7 +436,10 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
                     log->ino = sb.st_ino;
                 } 
             }
-            write_log_fd(log, bytes, size);
+            flush_log_to_fd(log, bytes, size);
+            break;
+        case SINK_SYSLOG:
+            flush_log_to_syslog(log, bytes, size);
             break;
 #ifdef HAS_CURL
         case SINK_HTTP:
