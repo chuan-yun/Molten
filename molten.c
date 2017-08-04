@@ -54,8 +54,6 @@ static void frame_destroy(mo_frame_t *frame);
 static void frame_set_retval(mo_frame_t *frame, zend_bool internal, zend_execute_data *ex, zend_fcall_info *fci TSRMLS_DC);
 #endif
 
-static smart_string repr_zval(zval *zv, int limit TSRMLS_DC);
-
 #if PHP_VERSION_ID < 50500
 static void (*ori_execute)(zend_op_array *op_array TSRMLS_DC);
 static void (*ori_execute_internal)(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC);
@@ -103,8 +101,7 @@ const zend_function_entry molten_functions[] = {
 #endif
 };
 
-/* {{{ molten_deps
-*/
+/* {{{ molten_deps */
 static const zend_module_dep molten_deps[] = {
     ZEND_MOD_REQUIRED("json")
     ZEND_MOD_REQUIRED("standard")
@@ -112,15 +109,19 @@ static const zend_module_dep molten_deps[] = {
     ZEND_MOD_OPTIONAL("memcached")    
     ZEND_MOD_OPTIONAL("redis")    
     ZEND_MOD_OPTIONAL("mongodb")    
+    ZEND_MOD_OPTIONAL("mysqli")    
+    ZEND_MOD_OPTIONAL("PDO")    
     ZEND_MOD_END
 };
 /* }}} */
 
+/* {{{ molten reload struct */
 typedef struct mo_reload_def_st {
     char *orig_func;
     char *over_func;
     char *save_func;
 } mo_reload_def;
+/* }}} */
 
 /* {{{ molten_reload_def */ 
 static const mo_reload_def prd[] = {
@@ -138,7 +139,6 @@ zend_function *origin_curl_exec =  NULL;
 zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
 /* }}} */
-
 
 /* {{{ molten reload curl function for performance */
 static void molten_reload_curl_function()
@@ -241,7 +241,6 @@ PHP_FUNCTION(molten_curl_setopt)
     /* before */
     if (PTG(pit).curl_header_internel_call != HEADER_INTERNAL_CALL) {
 #if PHP_MAJOR_VERSION < 7
-    // todo remove mo_* function
         zval *zid, **zvalue;
         long        options;
         if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rlZ", &zid, &options, &zvalue) == SUCCESS) {
@@ -250,7 +249,6 @@ PHP_FUNCTION(molten_curl_setopt)
                 MO_ALLOC_INIT_ZVAL(copy_header);
                 ZVAL_ZVAL(copy_header, *zvalue, 1, 0);
                 add_index_zval(PTG(pit).curl_header_record, Z_RESVAL_P(zid), copy_header);
-                MO_FREE_ALLOC_ZVAL(copy_header);
             }
         }
 #else
@@ -719,12 +717,6 @@ static void frame_destroy(mo_frame_t *frame)
 
     smart_string_free(&frame->class);
     smart_string_free(&frame->function);
-    if (frame->args && frame->arg_count) {
-        for (i = 0; i < frame->arg_count; i++) {
-            smart_string_free(&frame->args[i]);
-        }
-        efree(frame->args);
-    }
     efree(frame->span_id);
 }
 /* }}} */
@@ -755,7 +747,6 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     /* args init */
     args = NULL;
     frame->arg_count = 0;
-    frame->args = NULL;
 
     /* class name */
 #if PHP_VERSION_ID < 70000
@@ -802,13 +793,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     frame->arg_count = ZEND_CALL_NUM_ARGS(ex);
 #endif
 
-    if (frame->arg_count > 0) {
-        frame->args = ecalloc(frame->arg_count, sizeof(smart_string));
-    }
 #if PHP_VERSION_ID < 70000
-    for (i = 0; i < frame->arg_count; i++) {
-        frame->args[i] = repr_zval(args[i], 32 TSRMLS_CC);
-    }
     frame->ori_args = args;
 #else
     if (frame->arg_count) {
@@ -818,16 +803,10 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
             uint32_t first_extra_arg = ex->func->op_array.num_args;
 
             if (first_extra_arg && frame->arg_count > first_extra_arg) {
-                while (i < first_extra_arg) {
-                    frame->args[i++] = repr_zval(p++, 32);
-                }
                 p = ZEND_CALL_VAR_NUM(ex, ex->func->op_array.last_var + ex->func->op_array.T);
             }
         }
         frame->ori_args = p;
-        while(i < frame->arg_count) {
-            frame->args[i++] = repr_zval(p++, 32);
-        }
     }
 #endif
 
@@ -874,99 +853,6 @@ static void frame_set_retval(mo_frame_t *frame, zend_bool internal, zend_execute
     }
 }
 #endif
-/* }}} */
-
-/* {{{ Ptrace GenVal Function */
-static smart_string repr_zval(zval *zv, int limit TSRMLS_DC)
-{
-    int tlen = 0;
-    char buf[256] = {0}, *tstr = NULL;
-    smart_string result = {0};
-
-#if PHP_VERSION_ID >= 70000
-    zend_string *class_name;
-#endif
-
-    /* php_var_export_ex is a good example */
-    switch (Z_TYPE_P(zv)) {
-#if PHP_VERSION_ID < 70000
-        case IS_BOOL:
-            if (Z_LVAL_P(zv)) {
-                smart_string_appends(&result, "true");
-                return result;
-            } else {
-                smart_string_appends(&result, "false");
-                return result;
-            }
-#else
-        case IS_TRUE:
-            smart_string_appends(&result, "true");
-            return result;
-        case IS_FALSE:
-            smart_string_appends(&result, "false");
-            return result;
-#endif
-        case IS_NULL:
-            smart_string_appends(&result, "NULL");
-            return result;
-        case IS_LONG:
-            snprintf(buf, sizeof(buf), "%ld", Z_LVAL_P(zv));
-            smart_string_appends(&result, buf);
-            return result;
-        case IS_DOUBLE:
-            snprintf(buf, sizeof(buf), "%.*G", (int) EG(precision), Z_DVAL_P(zv));
-            smart_string_appends(&result, buf);
-            return result;
-        case IS_STRING:
-            tlen = (limit <= 0 || Z_STRLEN_P(zv) < limit) ? Z_STRLEN_P(zv) : limit;
-            smart_string_appendl(&result, Z_STRVAL_P(zv), tlen);
-            if (limit > 0 && Z_STRLEN_P(zv) > limit) {
-                smart_string_appends(&result, "...");
-            }
-            return result;
-        case IS_ARRAY:
-            /* TODO more info */
-            snprintf(buf, sizeof(buf), "array(%d)", zend_hash_num_elements(Z_ARRVAL_P(zv)));
-            smart_string_appends(&result, buf);
-            return result;
-        case IS_OBJECT:
-#if PHP_VERSION_ID < 70000
-            if (Z_OBJ_HANDLER(*zv, get_class_name)) {
-                Z_OBJ_HANDLER(*zv, get_class_name)(zv, (const char **) &tstr, (zend_uint *) &tlen, 0 TSRMLS_CC);
-                snprintf(buf, sizeof(buf), "object(%s)#%d", tstr, Z_OBJ_HANDLE_P(zv));
-                smart_string_appends(&result, buf);
-                efree(tstr);
-            } else {
-                snprintf(buf, sizeof(buf), "object(unkown)#%d", Z_OBJ_HANDLE_P(zv));
-                smart_string_appends(&result, buf);
-            }
-#else
-            class_name = Z_OBJ_HANDLER_P(zv, get_class_name)(Z_OBJ_P(zv));
-            snprintf(buf, sizeof(buf), "object(%s)#%d", MO_STR(class_name), Z_OBJ_HANDLE_P(zv));
-            smart_string_appends(&result, buf);
-            zend_string_release(class_name);
-#endif
-            return result;
-        case IS_RESOURCE:
-#if PHP_VERSION_ID < 70000
-            tstr = (char *) zend_rsrc_list_get_rsrc_type(Z_LVAL_P(zv) TSRMLS_CC);
-            snprintf(buf, sizeof(buf), "resource(%s)#%d", tstr ? tstr : "Unknown", Z_LVAL_P(zv));
-            smart_string_appends(&result, buf);
-            return result;
-#else
-            tstr = (char *) zend_rsrc_list_get_rsrc_type(Z_RES_P(zv) TSRMLS_CC);
-            snprintf(buf, sizeof(buf), "resource(%s)#%d", tstr ? tstr : "Unknown", Z_RES_P(zv)->handle);
-            smart_string_appends(&result, buf);
-            return result;
-        case IS_UNDEF:
-            smart_string_appends(&result, "{undef}");
-            return result;
-#endif
-        default:
-            smart_string_appends(&result, "{unknown}");
-            return result;
-    }
-}
 /* }}} */
 
 

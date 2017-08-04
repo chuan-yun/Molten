@@ -147,43 +147,6 @@ void build_http_header(mo_chain_t *pct, zval *header, char *span_id)
 
             char *parent_span_id = pct->pch.span_id->val;
 
-            /* tmp */
-            /* before del header  because of del not found */
-            /* no need to del header , bacause of remove add header */
-            /*
-            zval *index_zval;
-            MO_ALLOC_INIT_ZVAL(index_zval);
-            array_init(index_zval);
-
-            HashTable *header_ht = Z_ARRVAL_P(header);
-            for(zend_hash_internal_pointer_reset(header_ht); 
-                    zend_hash_has_more_elements(header_ht) == SUCCESS;
-                    zend_hash_move_forward(header_ht)) {
-                zval *tmp_header; 
-                if (mo_zend_hash_get_current_data(header_ht, (void **)&tmp_header) == SUCCESS) {
-                    if (strncmp(Z_STRVAL_P(tmp_header), MOLTEN_HEADER_PREFIX, MOLTEN_HEADER_PREFIX_LEN) == 0) {
-                        zval tmp_zval;
-                        zend_hash_get_current_key_zval(header_ht, &tmp_zval);
-                        if (MO_Z_TYPE_P(&tmp_zval) == IS_LONG) {
-                            add_next_index_long(index_zval, Z_LVAL(tmp_zval)); 
-                        }
-                    }
-                }
-            }
-
-            HashTable *index_ht = Z_ARRVAL_P(index_zval);
-            for(zend_hash_internal_pointer_reset(index_ht); 
-                    zend_hash_has_more_elements(index_ht) == SUCCESS;
-                    zend_hash_move_forward(index_ht)) {
-                zval *tmp_zval; 
-                if (mo_zend_hash_get_current_data(index_ht, (void **)&tmp_zval) == SUCCESS) {
-                    zend_hash_index_del(header_ht, Z_LVAL_P(tmp_zval));   
-                }
-            }
-            mo_zval_ptr_dtor(&index_zval);
-            MO_FREE_ALLOC_ZVAL(index_zval);
-            */
-
             /* append current header */
             HashTable *ht = pct->pch.chain_header_key;
             for(zend_hash_internal_pointer_reset(ht); 
