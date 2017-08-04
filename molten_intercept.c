@@ -15,10 +15,15 @@
  */
 #include "molten_intercept.h"
 
-#define RETURN_Z_STRING(zval) (zval && (MO_Z_TYPE_P(zval) == IS_STRING) ? Z_STRVAL_P(zval) : "")
-#define RETURN_Z_LONG(zval) (zval && (MO_Z_TYPE_P(zval) == IS_LONG) ? Z_LVAL_P(zval) : 0)
+#if PHP_VERSION_ID < 70000
+#define GET_FUNC_ARG(param, arg_num)    zval *param = (frame->ori_args)[arg_num]
+#define GET_FUNC_ARG_UNDEC(param, arg_num) param = (frame->ori_args)[arg_num]
+#else
+#define GET_FUNC_ARG(param, arg_num)    zval *param = ((zval *)(frame->ori_args) + arg_num)
+#define GET_FUNC_ARG_UNDEC(param, arg_num) param = ((zval *)(frame->ori_args) + arg_num)
+#endif
 
-/* pt intercept hit function */
+/* {{{ pt intercept hit function */
 zend_bool mo_intercept_hit(mo_interceptor_t *pit, mo_interceptor_ele_t **eleDest, char *class_name, char *function_name)
 {
     mo_interceptor_ele_t *ele;
@@ -62,7 +67,9 @@ zend_bool mo_intercept_hit(mo_interceptor_t *pit, mo_interceptor_ele_t **eleDest
 
     return ret;
 }
+/* }}} */
 
+/* {{{ hash destroy cb */
 #if PHP_VERSION_ID < 70000
 static void hash_destroy_cb(void *pDest)
 #else
@@ -72,7 +79,9 @@ static void hash_destroy_cb(zval *pDest)
     mo_interceptor_ele_t **pie = (mo_interceptor_ele_t **)pDest;
     pefree(*pie, 1);
 }
+/* }}} */
 
+/* {{{ convert args to string */
 static char *convert_args_to_string(mo_frame_t *frame)
 {
     int i = 0;
@@ -83,6 +92,7 @@ static char *convert_args_to_string(mo_frame_t *frame)
 #define ARGS_REAL_LEN (ARGS_MAX_LEN - ARGS_ELLIPSIS_LEN - 1)
 
     char *string = emalloc(ARGS_MAX_LEN);
+    smart_string tmp = {0};
     int real_len = 0;
     int stop = 0;
     memset(string, 0x00, ARGS_MAX_LEN);
@@ -91,17 +101,23 @@ static char *convert_args_to_string(mo_frame_t *frame)
     string = strncat(string, " ", 1);
 
     for (; i < frame->arg_count; i++) {
-        real_len = smart_string_len(frame->args[i])  + 1;
+#if PHP_VERSION_ID < 70000
+        tmp = repr_zval(frame->ori_args[i], 32);
+#else
+        tmp = repr_zval(((zval *)(frame->ori_args) + i), 32);
+#endif
+        real_len = smart_string_len(tmp)  + 1;
         if ((arg_len + real_len) >= ARGS_REAL_LEN)  {
             real_len = ARGS_REAL_LEN - arg_len;
-            string = strncat(string, smart_string_str(frame->args[i]), real_len - 1);
+            string = strncat(string, smart_string_str(tmp), real_len - 1);
             stop = 1;  
             break;
         } else {
-            string = strncat(string, smart_string_str(frame->args[i]), real_len - 1);
+            string = strncat(string, smart_string_str(tmp), real_len - 1);
             string = strncat(string, ",", 1);
             arg_len += real_len;
         }
+        smart_string_free(&tmp);
     }
     
     if (stop == 1) {
@@ -111,14 +127,7 @@ static char *convert_args_to_string(mo_frame_t *frame)
 
     return string;
 }
-
-#if PHP_VERSION_ID < 70000
-#define GET_FUNC_ARG(param, arg_num)    zval *param = (frame->ori_args)[arg_num]
-#define GET_FUNC_ARG_UNDEC(param, arg_num) param = (frame->ori_args)[arg_num]
-#else
-#define GET_FUNC_ARG(param, arg_num)    zval *param = ((zval *)(frame->ori_args) + arg_num)
-#define GET_FUNC_ARG_UNDEC(param, arg_num) param = ((zval *)(frame->ori_args) + arg_num)
-#endif
+/* }}} */
 
 /* {{{ Build common record */
 static zval *build_com_record(mo_interceptor_t *pit, mo_frame_t *frame, int add_args)
@@ -135,7 +144,11 @@ static zval *build_com_record(mo_interceptor_t *pit, mo_frame_t *frame, int add_
 }
 /* }}} */
 
-/********************curl_multi_add_handle*************************/
+/*******************************************************/
+/********************curl_multi*************************/
+/*******************************************************/
+
+/* {{{ curl multi add handle record */
 static void curl_multi_add_handle_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     if (frame->arg_count < 2) {
@@ -148,7 +161,9 @@ static void curl_multi_add_handle_record(mo_interceptor_t *pit, mo_frame_t *fram
     
     add_index_long(pit->span_info_cache, Z_RESVAL_P(ch), frame->entry_time); 
 }
+/* }}} */
 
+/* {{{{ curl multi remove handle */
 static void curl_multi_remove_handle_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     if (frame->arg_count < 2) {
@@ -168,14 +183,7 @@ static void curl_multi_remove_handle_record(mo_interceptor_t *pit, mo_frame_t *f
         }
     }
 }
-
-#define LOAD_OMO_HTTPHEADER_VAL do {                                                                                                \
-    if (Z_LVAL(pit->curl_http_header_const) == -1) {                                                                                \
-        if (mo_zend_get_constant("CURLOPT_HTTPHEADER", sizeof("CURLOPT_HTTPHEADER") - 1, &pit->curl_http_header_const) == 0) {      \
-            return;                                                                                                                 \
-        }                                                                                                                           \
-    }                                                                                                                               \
-}while(0)
+/* }}} */
 
 /* {{{ Build curl bannotation */
 void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, zval *handle, char *method, zend_bool check_error) 
@@ -215,7 +223,8 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
     mo_zval_dtor(&func);
 
     /* http.url */
-    pit->psb->span_add_ba_ex(span, "http.url", RETURN_Z_STRING(url), timestamp, pit->pct, BA_NORMAL);
+    convert_to_string(url);
+    pit->psb->span_add_ba_ex(span, "http.url", Z_STRVAL_P(url), timestamp, pit->pct, BA_NORMAL);
 
     if (check_error == 1) {
         /* curl_error */
@@ -236,7 +245,8 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
         } else {
             /* http.status */
             char tmp_string[32];
-            sprintf(tmp_string, "%ld", RETURN_Z_LONG(http_code));
+            convert_to_long(http_code);
+            sprintf(tmp_string, "%ld", Z_LVAL_P(http_code));
 
             /* not set the ip and port to sa */ 
             pit->psb->span_add_ba_ex(span, "http.status", tmp_string, timestamp, pit->pct, BA_NORMAL);
@@ -248,54 +258,12 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
 }
 /* }}} */
 
-/* {{{ curl multi exec intercept now discard */
-/*
-static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
-{
-    zval *ret = frame->ori_ret;
-    GET_FUNC_ARG(fir_arg,0);
-    GET_FUNC_ARG(sec_arg,1);
-    if (Z_LVAL(pit->curlm_call_multi_perform) == -10) {
-        if (mo_zend_get_constant("curlm_call_multi_perform", sizeof("curlm_call_multi_perform") - 1, &pit->curlm_call_multi_perform) == 0) {
-            return;
-        }
-    }
-
-    if ((MO_Z_TYPE_P(ret) != IS_LONG) || (Z_LVAL_P(ret) == Z_LVAL(pit->curlm_call_multi_perform) || Z_LVAL_P(sec_arg) != 0)) {
-        return;
-    }
-
-    zval *span;
-    pit->psb->start_span_ex(&span, "http", pit->pct, frame, AN_CLIENT);
-    if (MO_Z_TYPE_P(ret) != IS_FALSE && MO_Z_TYPE_P(fir_arg) == IS_RESOURCE) {
-        HashTable *ht = Z_ARRVAL_P(pit->curl_multi_handlers); 
-        zval *multi_handle; 
-        if (mo_zend_hash_index_find(ht, Z_RESVAL_P(fir_arg), (void **)&multi_handle) == SUCCESS) {
-            zval *val;
-            HashTable *curl_handle = Z_ARRVAL_P(multi_handle);
-            for(zend_hash_internal_pointer_reset(curl_handle); 
-                    zend_hash_has_more_elements(curl_handle) == SUCCESS;
-                    zend_hash_move_forward(curl_handle)) {
-                if (mo_zend_hash_get_current_data(curl_handle, (void **)&val) == SUCCESS) {
-                    zval *val_res;
-                    MO_MAKE_STD_ZVAL(val_res);
-                    ZVAL_RESOURCE(val_res, Z_RESVAL_P(val));
-                    build_curl_bannotation(span, frame->exit_time, pit, val_res, "curl_multi_exec", 1);
-                    FREE_ZVAL(val_res);
-                }
-            }
-        }
-    }
-    mo_chain_add_span(pit->pct->pcl, span);
-}
-*/
-/* }}} */
-
 #if PHP_VERSION_ID < 70000
 #define SET_SPAN_EXCEPTION(exception_ce,pit,frame,service_name,host,port)          do {                                                   \
         if (instanceof_function(Z_OBJCE_P(EG(exception)), exception_ce) == 1) {                                                 \
             zval *message = mo_zend_read_property(exception_ce, EG(exception), "message", sizeof("message") - 1, 1);            \
-            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_ERROR);                       \
+            convert_to_string(message); \
+            pit->psb->span_add_ba(span, "error", Z_STRVAL_P(message), frame->exit_time, service_name, host, port, BA_ERROR);                       \
            }                                                                \
 }while(0)
 #else
@@ -304,7 +272,8 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
             zval tmp;                                                                               \
             ZVAL_OBJ(&tmp, EG(exception));                                                          \
             zval *message = mo_zend_read_property(exception_ce, &tmp, "message", sizeof("message") - 1, 1);      \
-            pit->psb->span_add_ba(span, "error", RETURN_Z_STRING(message), frame->exit_time, service_name, host, port, BA_ERROR);    \
+            convert_to_string(message); \
+            pit->psb->span_add_ba(span, "error", Z_STRVAL_P(message), frame->exit_time, service_name, host, port, BA_ERROR);    \
         }                   \
 }while(0)
 #endif
@@ -329,7 +298,7 @@ static void curl_multi_exec_record(mo_interceptor_t *pit, mo_frame_t *frame)
 #define PDO_SET_EXCEPTION(pit)
 #endif
 
-
+/* {{{ pcre common match */
 static char *pcre_common_match(char *pattern, int len, char *subject) 
 {
     zval *result = NULL;
@@ -368,6 +337,11 @@ static char *pcre_common_match(char *pattern, int len, char *subject)
     efree(subpats);
     return ret;
 }
+/* }}} */
+
+/*****************************************************/
+/**************************pdo************************/
+/*****************************************************/
 
 /* only support 'dbname=duobao;host=192.168.56.102:330' format */
 static void analyze_data_source(zval *span, char *db_type, char *data_source, mo_frame_t *frame, mo_interceptor_t *pit)
@@ -395,7 +369,8 @@ static void analyze_data_source(zval *span, char *db_type, char *data_source, mo
     if (port != NULL) efree(port);
 }
 
-/****************************pdo**********************/
+
+/* {{{ pdo record */
 static void pdo_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     zval *object = frame->object;    
@@ -409,7 +384,8 @@ static void pdo_record(mo_interceptor_t *pit, mo_frame_t *frame)
     snprintf(span_name, sizeof(span_name), "PDO::%s", smart_string_str(frame->function));
     pit->psb->start_span_ex(&span, span_name, pit->pct, frame, AN_CLIENT);
     if (smart_strncmp(frame->function, "commit", sizeof("commit") -1) != 0 && frame->arg_count >= 1 && MO_Z_TYPE_P(fir_arg) == IS_STRING) {
-        pit->psb->span_add_ba_ex(span,  "db.statement", RETURN_Z_STRING(fir_arg), frame->exit_time, pit->pct, BA_NORMAL);
+        convert_to_string(fir_arg);
+        pit->psb->span_add_ba_ex(span,  "db.statement", Z_STRVAL_P(fir_arg), frame->exit_time, pit->pct, BA_NORMAL);
     }
 
 #ifdef HAS_PDO
@@ -454,7 +430,9 @@ static void pdo_record(mo_interceptor_t *pit, mo_frame_t *frame)
     PDO_SET_EXCEPTION(pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ pdo statement record */
 static void pdo_statement_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     zval *object = frame->object;    
@@ -509,19 +487,13 @@ static void pdo_statement_record(mo_interceptor_t *pit, mo_frame_t *frame)
     }
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/**************************************************/
 /*****************redis****************************/
-#define INIT_BANNOTATION_PARAM(MODULE)                                                                          \
-    int size = sizeof(#MODULE) + smart_string_len(frame->function) + 2;                                                   \
-    char *key = (char *)emalloc(size);                                                                          \
-    memset(key, 0x00, size);                                                                                    \
-    strncpy(key, #MODULE, sizeof(#MODULE) - 1);                                                                 \
-    key = strcat(key, "::");                                                                                    \
-    key = strcat(key, smart_string_str(frame->function));                                                                         \
-    char *value = convert_args_to_string(frame);                                                                \
-    pit->psb->span_add_ba_ex(span,  key, value, frame->exit_time, pit->pct, BA_NORMAL);      \
-    efree(value);                                                                                               \
+/**************************************************/
 
+/* {{{ redis record */
 static void redis_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     zval *object = frame->object;    
@@ -588,99 +560,16 @@ static void redis_record(mo_interceptor_t *pit, mo_frame_t *frame)
     mo_zval_dtor(&host);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/*******************************************************/
 /*******************memcached***************************/
-static void memcached_record(mo_interceptor_t *pit, mo_frame_t *frame)
+/*******************************************************/
+
+/* {{{ memcached common call */
+static void memcached_common_call(mo_interceptor_t *pit, mo_frame_t *frame, zval *span)
 {
-    zval *span;
     zval *object = frame->object;    
-
-    pit->psb->start_span_ex(&span, smart_string_str(frame->function), pit->pct, frame, AN_CLIENT);
-
-    /* add sa */
-    if (strncmp(smart_string_str(frame->function), "addServer", sizeof("addServer") - 1) == 0) {
-        if (frame->arg_count >= 2) {
-            GET_FUNC_ARG(host,0);
-            GET_FUNC_ARG(port,1);
-            int iport = 0;
-            if (MO_Z_TYPE_P(port) == IS_STRING) {
-                iport = atoi((const char*)Z_STRVAL_P(port));
-            } else if (MO_Z_TYPE_P(port) == IS_LONG) {
-                iport = Z_LVAL_P(port);
-            }
-
-            if (MO_Z_TYPE_P(host) == IS_STRING) {
-                pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", Z_STRVAL_P(host), iport, BA_SA);
-            }
-        }
-    }
-
-    /* add full sa */ 
-    if (strncmp(smart_string_str(frame->function), "addServers", sizeof("addServers") - 1) == 0) {
-        GET_FUNC_ARG(servers, 0);
-        if (MO_Z_TYPE_P(servers) == IS_ARRAY) {
-
-            int i, entry_size;
-#if PHP_VERSION_ID < 70000
-	        zval **entry;
-            zval **z_host, **z_port;
-	        for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(servers)), i = 0;
-	        	 zend_hash_get_current_data(Z_ARRVAL_P(servers), (void **)&entry) == SUCCESS;
-	        	 zend_hash_move_forward(Z_ARRVAL_P(servers)), i++) {
-
-                if (MO_Z_TYPE_PP(entry) != IS_ARRAY) {
-                    continue;
-                }
-                entry_size = zend_hash_num_elements(Z_ARRVAL_PP(entry));
-                if (entry_size > 1) {
-			        zend_hash_internal_pointer_reset(Z_ARRVAL_PP(entry));
-			        /* Check that we have a host */
-			        if (zend_hash_get_current_data(Z_ARRVAL_PP(entry), (void **)&z_host) == FAILURE) {
-                        continue;
-
-                    }
-                    /* Check that we have a port */
-			        if (zend_hash_move_forward(Z_ARRVAL_PP(entry)) == FAILURE ||
-				        zend_hash_get_current_data(Z_ARRVAL_PP(entry), (void **)&z_port) == FAILURE) {
-                        continue;
-
-                    }
-                    convert_to_string_ex(z_host);
-                    convert_to_long_ex(z_port);
-                    pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", Z_STRVAL_PP(z_host), Z_LVAL_PP(z_port), BA_SA);
-                }
-            }
-#else
-	    HashPosition	pos;
-	    zval *entry;
-	    zval *z_host, *z_port;
-		zend_string *host;
-		zend_long port;
-	    ZEND_HASH_FOREACH_VAL (Z_ARRVAL_P(servers), entry) {
-		    if (MO_Z_TYPE_P(entry) != IS_ARRAY) {
-                continue;
-            }
-		    entry_size = zend_hash_num_elements(Z_ARRVAL_P(entry));
-            if (entry_size > 1) {
-			    zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(entry), &pos);
-            }
-
-			if ((z_host = zend_hash_get_current_data_ex(Z_ARRVAL_P(entry), &pos)) == NULL) {
-                continue;
-            }
-
-			if (zend_hash_move_forward_ex(Z_ARRVAL_P(entry), &pos) == FAILURE ||
-			    (z_port = zend_hash_get_current_data_ex(Z_ARRVAL_P(entry), &pos)) == NULL) {
-                continue;
-            }
-			host = zval_get_string(z_host);
-			port = zval_get_long(z_port);
-            pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", ZSTR_VAL(host), port, BA_SA);
-            zend_string_release(host);
-	    } ZEND_HASH_FOREACH_END();
-#endif
-        }
-    }
 
     /* db.statement */
     char *value = convert_args_to_string(frame);
@@ -710,8 +599,122 @@ static void memcached_record(mo_interceptor_t *pit, mo_frame_t *frame)
 
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ memcached common record */
+static void memcached_common_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *span;
+
+    pit->psb->start_span_ex(&span, smart_string_str(frame->function), pit->pct, frame, AN_CLIENT);
+    memcached_common_call(pit, frame, span);
+}
+/* }}} */
+
+
+/* {{{ memcached addServer */
+static void memcached_add_server_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *span;
+
+    pit->psb->start_span_ex(&span, smart_string_str(frame->function), pit->pct, frame, AN_CLIENT);
+
+    if (frame->arg_count >= 2) {
+        GET_FUNC_ARG(host,0);
+        GET_FUNC_ARG(port,1);
+        int iport = 0;
+        if (MO_Z_TYPE_P(port) == IS_STRING) {
+            iport = atoi((const char*)Z_STRVAL_P(port));
+        } else if (MO_Z_TYPE_P(port) == IS_LONG) {
+            iport = Z_LVAL_P(port);
+        }
+
+        if (MO_Z_TYPE_P(host) == IS_STRING) {
+            pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", Z_STRVAL_P(host), iport, BA_SA);
+        }
+    }
+    memcached_common_call(pit, frame, span);
+}
+/* }}} */
+
+/* {{{ memcached addServers */
+static void memcached_add_servers_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *span;
+    pit->psb->start_span_ex(&span, smart_string_str(frame->function), pit->pct, frame, AN_CLIENT);
+
+    GET_FUNC_ARG(servers, 0);
+    if (MO_Z_TYPE_P(servers) == IS_ARRAY) {
+        int i, entry_size;
+#if PHP_VERSION_ID < 70000
+	    zval **entry;
+        zval **z_host, **z_port;
+	    for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(servers)), i = 0;
+	    	 zend_hash_get_current_data(Z_ARRVAL_P(servers), (void **)&entry) == SUCCESS;
+	    	 zend_hash_move_forward(Z_ARRVAL_P(servers)), i++) {
+
+            if (MO_Z_TYPE_PP(entry) != IS_ARRAY) {
+                continue;
+            }
+            entry_size = zend_hash_num_elements(Z_ARRVAL_PP(entry));
+            if (entry_size > 1) {
+		        zend_hash_internal_pointer_reset(Z_ARRVAL_PP(entry));
+		        /* Check that we have a host */
+		        if (zend_hash_get_current_data(Z_ARRVAL_PP(entry), (void **)&z_host) == FAILURE) {
+                    continue;
+
+                }
+                /* Check that we have a port */
+		        if (zend_hash_move_forward(Z_ARRVAL_PP(entry)) == FAILURE ||
+			        zend_hash_get_current_data(Z_ARRVAL_PP(entry), (void **)&z_port) == FAILURE) {
+                    continue;
+
+                }
+                convert_to_string_ex(z_host);
+                convert_to_long_ex(z_port);
+                pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", Z_STRVAL_PP(z_host), Z_LVAL_PP(z_port), BA_SA);
+            }
+        }
+#else
+	    HashPosition	pos;
+	    zval    *entry;
+	    zval *z_host, *z_port;
+		zend_string *host;
+		zend_long port;
+	    ZEND_HASH_FOREACH_VAL (Z_ARRVAL_P(servers), entry) {
+		    if (MO_Z_TYPE_P(entry) != IS_ARRAY) {
+                continue;
+            }
+		    entry_size = zend_hash_num_elements(Z_ARRVAL_P(entry));
+            if (entry_size > 1) {
+			    zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(entry), &pos);
+            }
+
+			if ((z_host = zend_hash_get_current_data_ex(Z_ARRVAL_P(entry), &pos)) == NULL) {
+                continue;
+            }
+
+			if (zend_hash_move_forward_ex(Z_ARRVAL_P(entry), &pos) == FAILURE ||
+			    (z_port = zend_hash_get_current_data_ex(Z_ARRVAL_P(entry), &pos)) == NULL) {
+                continue;
+            }
+			host = zval_get_string(z_host);
+			port = zval_get_long(z_port);
+            pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "memcache", ZSTR_VAL(host), port, BA_SA);
+            zend_string_release(host);
+	    } ZEND_HASH_FOREACH_END();
+#endif
+    }
+
+    memcached_common_call(pit, frame, span);
+}
+/* }}} */
+
+/*****************************************************************/
 /*****************************mysqli******************************/
+/*****************************************************************/
+
+/* mysqli connect common */
 static void mysqli_connect_common_record(mo_interceptor_t *pit, mo_frame_t *frame, int is_procedural)
 {
     if (frame->arg_count < 1) {
@@ -767,12 +770,16 @@ static void mysqli_connect_common_record(mo_interceptor_t *pit, mo_frame_t *fram
     /* add span */
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mysqli procedural */
 static void mysqli_connect_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     mysqli_connect_common_record(pit, frame, 1);
 }
+/* }}} */
 
+/* {{{ myqli real connect */
 static void mysqli_real_connect_record(mo_interceptor_t *pit, mo_frame_t *frame) 
 {
     if (frame->arg_count < 2) {
@@ -832,7 +839,9 @@ static void mysqli_real_connect_record(mo_interceptor_t *pit, mo_frame_t *frame)
     /* add span */
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mysqli common error */
 static void mysqli_common_error(mo_frame_t *frame, int is_procedural, zval *span, mo_interceptor_t *pit, char *error_function, char *class_entry_name) 
 {
     char *result = NULL;
@@ -891,14 +900,16 @@ static void mysqli_common_error(mo_frame_t *frame, int is_procedural, zval *span
         efree(result);
     }
 }
+/* }}} */
 
+/* {{{ mysqli get error */
 static void mysqli_error(mo_frame_t *frame, int is_procedural, zval *span, mo_interceptor_t *pit)
 {
     mysqli_common_error(frame, is_procedural, span, pit, "mysqli_error", "mysqli");
 }
+/* }}} */
 
-/* for mysqli get sa just for error return by RETURN_NULL;
-*/
+/* {{{ for mysqli get sa just for error return by RETURN_NULL; */
 static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int procedural, zval *span)
 {
     /* get sa */
@@ -935,8 +946,10 @@ static void db_query_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int proced
     }
 #endif
 }
+/* }}} */
 
-static void db_query_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural, char *component)
+/* {{{ db query record */
+static void db_query_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural)
 {
     if (procedural == 1 && frame->arg_count < 2) {
         return;
@@ -963,51 +976,50 @@ static void db_query_record(mo_interceptor_t *pit, mo_frame_t *frame, int proced
     mysqli_error(frame, procedural, span, pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mysqli procedural */
 static void mysqli_query_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
-    db_query_record(pit, frame, 1, "mysqli_query");
+    db_query_record(pit, frame, 1);
 }
+/* }}} */
 
+/* {{{ mysqli oo connect recrod */
+static void mysqli_construct_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    mysqli_connect_common_record(pit, frame, 0);
+}
+/* }}} */
+
+/* {{{ mysqli oo query reocrd */
+static void mysqli_oo_query_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    db_query_record(pit, frame, 0);
+}
+/* }}} */
+
+/* {{{ mysqli common record */
 static void mysqli_common_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
-    if (smart_strcmp(frame->function, "__construct") == 0) {
-        mysqli_connect_common_record(pit, frame, 0);
-        return;
-    }
-
-    if (smart_strcmp(frame->function, "mysqli") == 0) {
-        mysqli_connect_common_record(pit, frame, 0);
-        return;
-    }
-
-    if (smart_strcmp(frame->function, "real_connect") == 0) {
-        mysqli_connect_common_record(pit, frame, 0);
-        return;
-    }
-
-    if (smart_strcmp(frame->function, "query") == 0) {
-        db_query_record(pit, frame, 0, "mysqli::query");
-        return;
-    }
-
-    if (smart_strcmp(frame->function , "prepare") == 0) {
-        db_query_record(pit, frame, 0, "mysqli::prepare");
-        return;
-    }
-
     zval *span = build_com_record(pit, frame, 0);
     pit->psb->span_add_ba_ex(span, "db.type", "mysql", frame->exit_time, pit->pct, BA_NORMAL);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
-
+/***************************************************/
 /*****************mysqli_stmt***********************/
+/***************************************************/
+
+/* {{{ mysqli stmt error */
 static void mysqli_stmt_error(mo_frame_t *frame, int is_procedural, zval *span, mo_interceptor_t *pit) 
 {
     mysqli_common_error(frame, is_procedural, span, pit, "mysqli_stmt_error", "mysqli_stmt");
 }
+/* }}} */
 
+/* {{{ mysqli stmt */
 static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int procedural, zval *span)
 {
     /* get sa */
@@ -1044,7 +1056,9 @@ static void mysqli_stmt_get_sa(mo_interceptor_t *pit, mo_frame_t *frame, int pro
     }
 #endif
 }
+/* }}} */
 
+/* {{{ mysqli stmt prepare common */
 static void mysqli_stmt_prepare_common_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural)
 {
     if (procedural == 1) {
@@ -1075,7 +1089,9 @@ static void mysqli_stmt_prepare_common_record(mo_interceptor_t *pit, mo_frame_t 
     mysqli_stmt_error(frame, procedural, span, pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mysqli stmt exe common */
 static void mysqli_stmt_exe_common_record(mo_interceptor_t *pit, mo_frame_t *frame, int procedural)
 {
     zval *span = build_com_record(pit, frame, 0);
@@ -1084,7 +1100,9 @@ static void mysqli_stmt_exe_common_record(mo_interceptor_t *pit, mo_frame_t *fra
     mysqli_stmt_error(frame, procedural, span, pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mysqli stmt exe oo record */
 static void mysqli_stmt_exe_oo_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     if (smart_strcmp(frame->function, "prepare") == 0) {
@@ -1093,25 +1111,27 @@ static void mysqli_stmt_exe_oo_record(mo_interceptor_t *pit, mo_frame_t *frame)
         mysqli_stmt_exe_common_record(pit, frame, 0);
     }
 }
+/* }}} */
 
+/* {{{ mysqli stmt prepare procedural */
 static void mysqli_stmt_prepare_procedural_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     mysqli_stmt_prepare_common_record(pit, frame, 1);
 }
+/* }}} */
 
+/* {{{ mysqli stmt procedural */
 static void mysqli_stmt_exe_procedural_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     mysqli_stmt_exe_common_record(pit, frame, 1);
 }
+/* }}} */
 
-/********************predis***********************************/
-static void predis_record(mo_interceptor_t *pit, mo_frame_t *frame)
-{
-    zval *span = build_com_record(pit, frame, 1);
-    mo_chain_add_span(pit->pct->pcl, span);
-}
-
+/************************************************/
 /******************mongodb***********************/
+/************************************************/
+
+/* {{{ mongodb record */
 static void mongodb_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     if (frame->arg_count < 1) {
@@ -1146,7 +1166,9 @@ static void mongodb_record(mo_interceptor_t *pit, mo_frame_t *frame)
     SET_DEFAULT_EXCEPTION(frame, pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
+/* {{{ mongo server record */
 static void mongodb_server_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     if (frame->arg_count < 1) {
@@ -1187,8 +1209,9 @@ static void mongodb_server_record(mo_interceptor_t *pit, mo_frame_t *frame)
     SET_DEFAULT_EXCEPTION(frame, pit);
     mo_chain_add_span(pit->pct->pcl, span);
 }
+/* }}} */
 
-
+/* {{{ check extension load or not */
 static int extension_loaded(char *extension_name)
 {
     char *lcname = zend_str_tolower_dup(extension_name, strlen(extension_name));
@@ -1196,12 +1219,11 @@ static int extension_loaded(char *extension_name)
     efree(lcname);
     return result;
 }
+/* }}} */
 
 #define INIT_INTERCEPTOR_ELE(nk, record_f)  do {                                                 \
     mo_interceptor_ele_t *name##_ele = (mo_interceptor_ele_t *) pemalloc(sizeof(mo_interceptor_ele_t), 1);      \
-    name##_ele->name = #nk;                                                                                     \
     name##_ele->keyword = #nk;                                                                                  \
-    name##_ele->capture = NULL;                                                                            \
     name##_ele->record = record_f;                                                                              \
     name##_ele->pit = pit;                                                                                      \
     ADD_INTERCEPTOR_ELE(pit, name##_ele);                                                                       \
@@ -1244,12 +1266,12 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE_TAG(mysqli_stmt_prepare,        &mysqli_stmt_prepare_procedural_record);
 
         ADD_INTERCEPTOR_TAG(pit, mysqli);
-        INIT_INTERCEPTOR_ELE(mysqli@__construct,    &mysqli_common_record);
-        INIT_INTERCEPTOR_ELE(mysqli@mysqli,         &mysqli_common_record);
-        INIT_INTERCEPTOR_ELE(mysqli@real_connect,   &mysqli_common_record);
-        INIT_INTERCEPTOR_ELE(mysqli@query,          &mysqli_common_record);
+        INIT_INTERCEPTOR_ELE(mysqli@__construct,    &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@mysqli,         &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@real_connect,   &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@query,          &mysqli_oo_query_record);
+        INIT_INTERCEPTOR_ELE(mysqli@prepare,        &mysqli_oo_query_record);
         INIT_INTERCEPTOR_ELE(mysqli@commit,         &mysqli_common_record);
-        INIT_INTERCEPTOR_ELE(mysqli@prepare,        &mysqli_common_record);
 
         ADD_INTERCEPTOR_TAG(pit, mysqli_stmt);
         INIT_INTERCEPTOR_ELE(mysqli_stmt@execute,   &mysqli_stmt_exe_oo_record);
@@ -1281,9 +1303,12 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     /* add memcache ele */
     if (extension_loaded("memcached")) {
         ADD_INTERCEPTOR_TAG(pit, Memcached);
-#define MIE(k)   INIT_INTERCEPTOR_ELE(k,     &memcached_record)
-        MIE(Memcached@add);MIE(Memcached@addByKey);MIE(Memcached@addServer);
-        MIE(Memcached@addServers);MIE(Memcached@append);MIE(Memcached@appendByKey);
+
+        INIT_INTERCEPTOR_ELE(Memcached@addServer,     &memcached_add_server_record);
+        INIT_INTERCEPTOR_ELE(Memcached@addServers,    &memcached_add_servers_record);
+#define MIE(k)   INIT_INTERCEPTOR_ELE(k,     &memcached_common_record)
+        MIE(Memcached@add);MIE(Memcached@addByKey);
+        MIE(Memcached@append);MIE(Memcached@appendByKey);
         MIE(Memcached@cas);MIE(Memcached@casByKey);MIE(Memcached@decrement);
         MIE(Memcached@decrementByKey);MIE(Memcached@delete);MIE(Memcached@deleteByKey);
         MIE(Memcached@deleteMulti);MIE(Memcached@deleteMultiByKey);MIE(Memcached@fetch);

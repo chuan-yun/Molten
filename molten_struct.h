@@ -91,7 +91,6 @@ typedef struct {
     smart_string    class;            /* class name */
 
     uint32_t        arg_count;        /* arguments number */
-    smart_string    *args;            /* arguments represent string */
 
     int64_t         entry_time;       /* entry wall time */ 
     int64_t         exit_time;        /* exit wall time */

@@ -60,6 +60,7 @@
     ADD_INTERCEPTOR_ELE(interceptor, ele);          \
     ADD_INTERCEPTOR_TAG(interceptor, ele->keyword);              \
 }while(0)
+
 /* interceptor */
 typedef struct {
     HashTable   *elements;
@@ -88,9 +89,7 @@ typedef void (*record_func)(mo_interceptor_t *pit, mo_frame_t *frame);
 
 /* interceptor element */ 
 typedef struct {
-    char *name;
     char *keyword;
-    capture_func capture;       
     record_func record;
 
     mo_interceptor_t *pit;

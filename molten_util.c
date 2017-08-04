@@ -110,3 +110,98 @@ void build_span_id_level(char **span_id, char *parent_span_id, int span_count)
         *span_id = estrdup("1");
     }
 }
+
+/* {{{ retrive zval  */
+smart_string repr_zval(zval *zv, int limit TSRMLS_DC)
+{
+    int tlen = 0;
+    char buf[256] = {0}, *tstr = NULL;
+    smart_string result = {0};
+
+#if PHP_VERSION_ID >= 70000
+    zend_string *class_name;
+#endif
+
+    /* php_var_export_ex is a good example */
+    switch (Z_TYPE_P(zv)) {
+#if PHP_VERSION_ID < 70000
+        case IS_BOOL:
+            if (Z_LVAL_P(zv)) {
+                smart_string_appends(&result, "true");
+                return result;
+            } else {
+                smart_string_appends(&result, "false");
+                return result;
+            }
+#else
+        case IS_TRUE:
+            smart_string_appends(&result, "true");
+            return result;
+        case IS_FALSE:
+            smart_string_appends(&result, "false");
+            return result;
+#endif
+        case IS_NULL:
+            smart_string_appends(&result, "NULL");
+            return result;
+        case IS_LONG:
+            snprintf(buf, sizeof(buf), "%ld", Z_LVAL_P(zv));
+            smart_string_appends(&result, buf);
+            return result;
+        case IS_DOUBLE:
+            snprintf(buf, sizeof(buf), "%.*G", (int) EG(precision), Z_DVAL_P(zv));
+            smart_string_appends(&result, buf);
+            return result;
+        case IS_STRING:
+            tlen = (limit <= 0 || Z_STRLEN_P(zv) < limit) ? Z_STRLEN_P(zv) : limit;
+            smart_string_appendl(&result, Z_STRVAL_P(zv), tlen);
+            if (limit > 0 && Z_STRLEN_P(zv) > limit) {
+                smart_string_appends(&result, "...");
+            }
+            return result;
+        case IS_ARRAY:
+            /* TODO more info */
+            snprintf(buf, sizeof(buf), "array(%d)", zend_hash_num_elements(Z_ARRVAL_P(zv)));
+            smart_string_appends(&result, buf);
+            return result;
+        case IS_OBJECT:
+#if PHP_VERSION_ID < 70000
+            if (Z_OBJ_HANDLER(*zv, get_class_name)) {
+                Z_OBJ_HANDLER(*zv, get_class_name)(zv, (const char **) &tstr, (zend_uint *) &tlen, 0 TSRMLS_CC);
+                snprintf(buf, sizeof(buf), "object(%s)#%d", tstr, Z_OBJ_HANDLE_P(zv));
+                smart_string_appends(&result, buf);
+                efree(tstr);
+            } else {
+                snprintf(buf, sizeof(buf), "object(unkown)#%d", Z_OBJ_HANDLE_P(zv));
+                smart_string_appends(&result, buf);
+            }
+#else
+            class_name = Z_OBJ_HANDLER_P(zv, get_class_name)(Z_OBJ_P(zv));
+            snprintf(buf, sizeof(buf), "object(%s)#%d", MO_STR(class_name), Z_OBJ_HANDLE_P(zv));
+            smart_string_appends(&result, buf);
+            zend_string_release(class_name);
+#endif
+            return result;
+        case IS_RESOURCE:
+#if PHP_VERSION_ID < 70000
+            tstr = (char *) zend_rsrc_list_get_rsrc_type(Z_LVAL_P(zv) TSRMLS_CC);
+            snprintf(buf, sizeof(buf), "resource(%s)#%d", tstr ? tstr : "Unknown", Z_LVAL_P(zv));
+            smart_string_appends(&result, buf);
+            return result;
+#else
+            tstr = (char *) zend_rsrc_list_get_rsrc_type(Z_RES_P(zv) TSRMLS_CC);
+            snprintf(buf, sizeof(buf), "resource(%s)#%d", tstr ? tstr : "Unknown", Z_RES_P(zv)->handle);
+            smart_string_appends(&result, buf);
+            return result;
+        case IS_UNDEF:
+            smart_string_appends(&result, "{undef}");
+            return result;
+#endif
+        default:
+            smart_string_appends(&result, "{unknown}");
+            return result;
+    }
+}
+/* }}} */
+
+
