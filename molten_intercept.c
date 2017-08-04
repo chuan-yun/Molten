@@ -646,7 +646,7 @@ static void memcached_add_servers_record(mo_interceptor_t *pit, mo_frame_t *fram
     GET_FUNC_ARG(servers, 0);
     if (MO_Z_TYPE_P(servers) == IS_ARRAY) {
         int i, entry_size;
-#if VERSION_ID < 70000
+#if PHP_VERSION_ID < 70000
 	    zval **entry;
         zval **z_host, **z_port;
 	    for (zend_hash_internal_pointer_reset(Z_ARRVAL_P(servers)), i = 0;
@@ -1270,8 +1270,8 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE(mysqli@mysqli,         &mysqli_construct_record);
         INIT_INTERCEPTOR_ELE(mysqli@real_connect,   &mysqli_construct_record);
         INIT_INTERCEPTOR_ELE(mysqli@query,          &mysqli_oo_query_record);
-        INIT_INTERCEPTOR_ELE(mysqli@commit,         &mysqli_oo_query_record);
-        INIT_INTERCEPTOR_ELE(mysqli@prepare,        &mysqli_common_record);
+        INIT_INTERCEPTOR_ELE(mysqli@prepare,        &mysqli_oo_query_record);
+        INIT_INTERCEPTOR_ELE(mysqli@commit,         &mysqli_common_record);
 
         ADD_INTERCEPTOR_TAG(pit, mysqli_stmt);
         INIT_INTERCEPTOR_ELE(mysqli_stmt@execute,   &mysqli_stmt_exe_oo_record);
