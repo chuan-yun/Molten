@@ -36,6 +36,8 @@ make && make install
 
 `make install` copies `molten.so` to and appropriate location, but you still need to enable the module int the PHP config file, To do so, either edit your php.ini or add ad molten.ini file in `/etc/php5/conf.d` with the following contents:`extension=molten.so`.
 
+at `./configure` phase, you can also add `--enable-zipkin-header=yes` to support zipkin B3 header.
+
 # QuickStart
 
 ~~~
@@ -85,13 +87,15 @@ report module output type is same as sink module
 
 ## Sink Config
 
-`molten.sink_type` sink type, `1` write log, log path is depend on `molten.sink_log_path`, `2` write log to standand output, `4` use curl to send trace log, http uri depend on `molten.sink_http_uri`.
+`molten.sink_type` sink type, `1` write log, log path is depend on `molten.sink_log_path`, `2` write log to standand output, `3` write log to syslog, `4` use curl to send trace log, http uri depend on `molten.sink_http_uri`.
 
 `molten.output_type`  output spans on one line(`1`) or one line one span(`2`).
 
 `molten.sink_log_path` locate log path.
 
-`ptrcing.sink_http_uri` locate log http uri.
+`molten.sink_http_uri` locate log http uri.
+
+`molten.sink_syslog_unix_socket` transform log to syslog udp unix domain collector.
 
 ## Spans Config
 
