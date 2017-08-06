@@ -36,6 +36,8 @@ make && make install
 
 `make install` 复制 `molten.so` 到确切的位置, 但是你还需要开启模块在php配置中,编辑你自己的php.ini或者添加molten.ini在`/etc/php5/conf.d`, 并且添加如下内容:`extension=molten.so`。
 
+在`./configure` 阶段, 你也可以添加 `--enable-zipkin-header=yes` 支持zipkin B3 header。
+
 # 快速开始
 
 ~~~
@@ -85,13 +87,15 @@ sh complex.sh
 
 ## 数据模块
 
-`molten.sink_type` 数据落地类型, `1` 写入文件, 文件地址依赖`molten.sink_log_path`, `2` 写入到标准输出, `4` 通过curl发送, 发送地址依赖 `molten.sink_http_uri`.
+`molten.sink_type` 数据落地类型, `1` 写入文件, 文件地址依赖`molten.sink_log_path`, `2` 写入到标准输出, `3` 写入到syslog中, `4` 通过curl发送, 发送地址依赖 `molten.sink_http_uri`.
 
 `molten.output_type`  输出全部追踪块(span)(`1`) 或者一行输出一个块(`2`)。
 
 `molten.sink_log_path` 写入文件地址。
 
-`ptrcing.sink_http_uri` 发送http地址。
+`molten.sink_http_uri` 发送http地址。
+
+`molten.sink_syslog_unix_socket` 发送日志到syslog udp unixdomain日志收集源中。
 
 ## 追踪块配置
 

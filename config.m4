@@ -1,5 +1,7 @@
 PHP_ARG_ENABLE(molten, whether to enable molten support,
 [  --enable-molten           Enable molten support])
+PHP_ARG_ENABLE(zipkin-header, whether to enable zipkin B3 header,
+[  --enable-zipkin-header    Enable zipkin header support], no, no)
 
 if test "$PHP_PRACING" != "no"; then
 
@@ -11,6 +13,11 @@ if test "$PHP_PRACING" != "no"; then
   dnl check mmap functions
   AC_CHECK_FUNCS(mmap)
   AC_CHECK_FUNCS(munmap)
+
+  dnl check support zipkin b3 header
+  if test "$PHP_ZIPKIN_HEADER" != "no"; then
+      AC_DEFINE(USE_ZIPKIN_HEADER, 1, [Enable zipkin header support])
+  fi
 
   dnl check for php json
   AC_MSG_CHECKING([check for php json])
