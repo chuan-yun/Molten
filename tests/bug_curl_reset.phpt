@@ -1,7 +1,7 @@
 --TEST--
 Bug curl reset info
 --SKIPIF--
-<?php if (ini_get("molten.span_format") != "zipkin") print "skip"; ?>
+<?php if ((ini_get("molten.span_format") != "zipkin") || (version_compare(phpversion(), "5.5", "<"))) print "skip"; ?>
 --INI--
 molten.enable=1
 molten.tracing_cli=1

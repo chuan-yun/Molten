@@ -20,7 +20,8 @@
 #include "php.h"
 #include "ext/json/php_json.h"
 
-#if PHP_MAJOR_VERSION < 7
+
+#if PHP_VERSION_ID < 70000
 
 /* smart string */
 #include "ext/standard/php_smart_str.h"
@@ -75,7 +76,11 @@
 static inline void array_init_persist(zval *arg ZEND_FILE_LINE_DC)
 {
     Z_ARRVAL_P(arg) = (HashTable *)pemalloc(sizeof(HashTable), 1);
+#if PHP_VERSION_ID < 50600
+    _zend_hash_init(Z_ARRVAL_P(arg), 0, NULL, ZVAL_PTR_DTOR, 1 ZEND_FILE_LINE_RELAY_CC);
+#else
     _zend_hash_init(Z_ARRVAL_P(arg), 0, ZVAL_PTR_DTOR, 1 ZEND_FILE_LINE_RELAY_CC);
+#endif
     Z_TYPE_P(arg) = IS_ARRAY;
 }
 

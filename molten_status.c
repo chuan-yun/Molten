@@ -43,15 +43,18 @@ void mo_request_handle(mo_ctrl_t *mrt TSRMLS_DC)
 
         /* POST update ctrl info */
         if (strncmp(SG(request_info).request_method, "POST", sizeof("POST") - 1) == 0) {
-            php_stream_rewind(SG(request_info).request_body);
             int res = 0;
 
-#if PHP_VERSION_ID < 70000
+#if PHP_VERSION_ID < 50600
+            res = mo_ctrl_update_sampling(SG(request_info).raw_post_data, mrt->mcm);
+#elif PHP_VERSION_ID < 70000
+            php_stream_rewind(SG(request_info).request_body);
             char *post_data;
             php_stream_copy_to_mem(SG(request_info).request_body, &post_data, PHP_STREAM_COPY_ALL, 0);
             res = mo_ctrl_update_sampling(post_data, mrt->mcm);
             efree(post_data);
 #else
+            php_stream_rewind(SG(request_info).request_body);
             zend_string *post_data = php_stream_copy_to_mem(SG(request_info).request_body, PHP_STREAM_COPY_ALL, 0);
             res = mo_ctrl_update_sampling(ZSTR_VAL(post_data), mrt->mcm);
             zend_string_free(post_data);

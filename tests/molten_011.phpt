@@ -39,7 +39,7 @@ $data = curl_exec($ch);
 echo $data . "\n";
 ?>
 --EXPECTF--
-Warning: molten_curl_setopt(): You must pass either an object or an array with the CURLOPT_HTTPHEADER argument in %s on line 23
+Warning: molten_curl_setopt(): %s on line 23
 trace_id:%s,span_id:%s,parent_id:%s,sampled:1,flags:0,query_string:ch2=1&trace=1&reflect=11
 {"traceId":"%s","name":"php_curl","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"http.url","value":"http:\/\/localhost:8960\/?ch1=1&trace=1&reflect=1","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"error","value":"%s","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
 {"traceId":"%s","name":"php_curl","version":"%s","id":"%s","parentId":"%s","timestamp":%d,"duration":%d,"annotations":[{"value":"cs","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}},{"value":"cr","timestamp":%d,"endpoint":{"serviceName":"test","ipv4":"%s"}}],"binaryAnnotations":[{"key":"http.url","value":"http:\/\/localhost:8964\/?ch2=1&trace=1&reflect=1","endpoint":{"serviceName":"test","ipv4":"%s"}},{"key":"http.status","value":"200","endpoint":{"serviceName":"test","ipv4":"%s"}}]}
