@@ -4,6 +4,8 @@ env:
     - MO_PHP_VERSION=7.1.2
     - MO_PHP_VERSION=7.0.16
     - MO_PHP_VERSION=5.6.30
+    - MO_PHP_VERSION=5.5.38
+    - MO_PHP_VERSION=5.4.37
 
 services:
     - mysql
@@ -26,7 +28,7 @@ before_install:
     # restart redis
     - sudo redis-server /etc/redis/redis.conf --port 6380
 
-    # set mongodb
+    # set mysql table
     - mysql -e 'CREATE DATABASE IF NOT EXISTS molten;' -u root
     - mysql -e 'CREATE TABLE molten.configs (
         `key` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
