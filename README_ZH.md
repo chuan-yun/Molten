@@ -55,6 +55,8 @@ sh complex.sh
 
 `注意` 如果没有看到详细信息，那么EndTime选项中添加1小时。
 
+[示例详细介绍](https://github.com/chuan-yun/Molten/wiki/Example)
+
 # 配置
 ## 基础配置
 
