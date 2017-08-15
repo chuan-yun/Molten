@@ -1396,6 +1396,7 @@ static int extension_loaded(char *extension_name)
     ADD_INTERCEPTOR_TAG(pit, nk);                                   \
 }while(0)
 
+/* {{{ mo intercept ctor */
 void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_builder *psb)
 {
     /* init global vars */
@@ -1517,8 +1518,9 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@create, &default_capture, &default_es_record);
     }
 }
+/* }}} */
 
-/* intercept rinit */
+/* {{{ intercept rinit */
 void mo_intercept_init(mo_interceptor_t *pit)
 {
     MO_ALLOC_INIT_ZVAL(pit->curl_header_record);
@@ -1532,8 +1534,9 @@ void mo_intercept_init(mo_interceptor_t *pit)
     /* curl_header internel call = 0 */
     pit->curl_header_internel_call = HEADER_OUT_CALL;
 }
+/* }}} */
 
-/* intercept rshutdown */
+/* {{{ intercept rshutdown */
 void mo_intercept_uninit(mo_interceptor_t *pit)
 {
 #if PHP_VERSION_ID < 70000
@@ -1548,7 +1551,9 @@ void mo_intercept_uninit(mo_interceptor_t *pit)
     MO_FREE_ALLOC_ZVAL(pit->span_info_cache);
 #endif
 }
+/* }}} */
 
+/* {{{ mo intercept dtor */
 void mo_intercept_dtor(mo_interceptor_t *pit)
 {
     zend_hash_destroy(pit->elements);
@@ -1564,3 +1569,4 @@ void mo_intercept_dtor(mo_interceptor_t *pit)
     pit->elements = NULL;
     pit->tags = NULL;
 }
+/* }}} */
