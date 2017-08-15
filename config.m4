@@ -2,6 +2,8 @@ PHP_ARG_ENABLE(molten, whether to enable molten support,
 [  --enable-molten           Enable molten support])
 PHP_ARG_ENABLE(zipkin-header, whether to enable zipkin B3 header,
 [  --enable-zipkin-header    Enable zipkin header support], no, no)
+PHP_ARG_ENABLE(level-id,      whether to enable level span id,
+[  --enable-level-id         Enable level span id], no, no)
 
 if test "$PHP_PRACING" != "no"; then
 
@@ -17,6 +19,11 @@ if test "$PHP_PRACING" != "no"; then
   dnl check support zipkin b3 header
   if test "$PHP_ZIPKIN_HEADER" != "no"; then
       AC_DEFINE(USE_ZIPKIN_HEADER, 1, [Enable zipkin header support])
+  fi
+
+  dnl check support level span id
+  if test "$PHP_LEVEL_ID" != "no"; then
+      AC_DEFINE(USE_LEVEL_ID, 1, [Enable level span id])
   fi
 
   dnl check for php json
@@ -166,6 +173,7 @@ if test "$PHP_PRACING" != "no"; then
     molten_intercept.c \
     molten_ctrl.c \
     common/molten_shm.c \
+    common/molten_stack.c \
     common/molten_lock.c \
     molten_util.c \
     molten_span.c \

@@ -177,7 +177,11 @@ static void curl_multi_remove_handle_record(mo_interceptor_t *pit, mo_frame_t *f
     if (mo_zend_hash_index_zval_find(Z_ARRVAL_P(pit->span_info_cache), Z_RESVAL_P(ch), (void **)&start_time) == SUCCESS) {
         if (MO_Z_TYPE_P(start_time) == IS_LONG) {
             zval *curl_span;
-            pit->psb->start_span(&curl_span, "php_curl_multi", pit->pct->pch.trace_id->val, frame->span_id, pit->pct->pch.span_id->val, Z_LVAL_P(start_time), frame->exit_time, pit->pct, AN_CLIENT);
+            char *span_id;
+            char *parent_span_id;
+            retrieve_span_id_4_frame(frame, &span_id);
+            retrieve_parent_span_id_4_frame(frame, &parent_span_id);
+            pit->psb->start_span(&curl_span, "php_curl_multi", pit->pct->pch.trace_id->val, span_id, parent_span_id, Z_LVAL_P(start_time), frame->exit_time, pit->pct, AN_CLIENT);
             build_curl_bannotation(curl_span, frame->exit_time, pit, ch, "curl_multi_exec", 1);
             mo_chain_add_span(pit->pct->pcl, curl_span);
         }
@@ -1211,6 +1215,163 @@ static void mongodb_server_record(mo_interceptor_t *pit, mo_frame_t *frame)
 }
 /* }}} */
 
+/************************************************/
+/******************guzzle***********************/
+/************************************************/
+/* {{{ init span extra */
+static void init_span_extra(mo_frame_t *frame) 
+{
+    MO_ALLOC_INIT_ZVAL(frame->span_extra);
+    array_init(frame->span_extra);
+}
+/* }}} */
+
+/* {{{ merge span extra */
+static void merge_span_extra(zval *span, mo_frame_t *frame)
+{
+    mo_array_merge(span, frame->span_extra);
+    mo_zval_dtor(frame->span_extra);
+    efree(frame->span_extra);
+    frame->span_extra = NULL;
+}
+/* }}} */
+
+/* {{{ default capture */
+static void default_capture(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    init_span_extra(frame);
+    char *value = convert_args_to_string(frame); 
+    pit->psb->span_add_ba_ex(frame->span_extra,  "db.statement", value, frame->entry_time, pit->pct, BA_NORMAL);
+    efree(value);
+}
+/* }}} */
+
+/* {{{ guzzle request capture */
+static void guzzle_request_capture(mo_interceptor_t *pit, mo_frame_t *frame) 
+{
+    init_span_extra(frame);
+
+    /* add method */
+    GET_FUNC_ARG(method,0);
+    if (frame->arg_count >= 1 && MO_Z_TYPE_P(method) == IS_STRING) {
+        pit->psb->span_add_ba_ex(frame->span_extra,  "http.method", Z_STRVAL_P(method), frame->entry_time, pit->pct, BA_NORMAL);
+    }
+
+    /* add uri */
+    GET_FUNC_ARG(uri,1);
+    if (frame->arg_count >= 2 && MO_Z_TYPE_P(uri) == IS_STRING) {
+        pit->psb->span_add_ba_ex(frame->span_extra,  "http.uri", Z_STRVAL_P(uri), frame->entry_time, pit->pct, BA_NORMAL);
+    }
+}
+/* }}} */
+
+/* {{{ guzzle request record */
+static void guzzle_request_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *client = frame->object;    
+
+    zval *span = build_com_record(pit, frame, 0);
+    
+    /* merge span extra */
+    merge_span_extra(span, frame);
+    
+    /* get status */
+    zval *response = frame->ori_ret;
+    if (response != NULL && MO_Z_TYPE_P(response) == IS_OBJECT) {
+        zval status_code;
+        zval status_function;
+        MO_ZVAL_STRING(&status_function, "getStatusCode", 1);
+        if (mo_call_user_function(NULL, &response, &status_function, &status_code, 0, NULL) == SUCCESS) {
+            convert_to_string(&status_code);
+            pit->psb->span_add_ba_ex(span,  "http.status", Z_STRVAL(status_code), frame->exit_time, pit->pct, BA_NORMAL);
+        }
+        mo_zval_dtor(&status_function);
+        mo_zval_dtor(&status_code);
+    }
+
+    /* add component */
+    pit->psb->span_add_ba_ex(span,  "componet", "GuzzleHttp\\Client", frame->exit_time, pit->pct, BA_NORMAL);
+
+    /* check exception */
+    SET_DEFAULT_EXCEPTION(frame, pit);
+
+    /* add span */
+    mo_chain_add_span(pit->pct->pcl, span);
+}
+/* }}} */
+
+/************************************************/
+/******************elasticsearch*****************/
+/************************************************/
+/* {{{ es request record */
+static void es_request_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *client = frame->object;    
+
+    zval *span = build_com_record(pit, frame, 0);
+
+    merge_span_extra(span, frame);
+
+    /* read transport */    
+    zval *transport = mo_zend_read_property(frame->scope, client, "transport", sizeof("transport") - 1, 1);
+    if (transport != NULL && MO_Z_TYPE_P(transport) == IS_OBJECT) {
+        zval connection;
+        zval connection_function;
+        MO_ZVAL_STRING(&connection_function, "getLastConnection", 1);
+        if (mo_call_user_function(NULL, &transport, &connection_function, &connection, 0, NULL) == SUCCESS) {
+            zval host;
+            zval host_function;
+            zval *c_tmp = &connection;
+            MO_ZVAL_STRING(&host_function, "getHost", 1);
+            if (mo_call_user_function(NULL, &c_tmp, &host_function, &host, 0, NULL) == SUCCESS) {
+                if (MO_Z_TYPE_P(&host) == IS_STRING) {
+                    php_url *url = php_url_parse(Z_STRVAL(host));
+                    if (url != NULL) {
+                        pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "es", url->host, url->port, BA_SA);
+                    
+                    } else {
+                        pit->psb->span_add_ba_ex(span,  "php.db.data_source", Z_STRVAL(host), frame->exit_time, pit->pct, BA_NORMAL);
+                    }
+                    php_url_free(url);
+                }
+            }
+            mo_zval_dtor(&host);
+            mo_zval_dtor(&host_function);
+        }
+        mo_zval_dtor(&connection);
+        mo_zval_dtor(&connection_function);
+    }
+    
+    pit->psb->span_add_ba_ex(span,  "db.type", "elasticsearch", frame->exit_time, pit->pct, BA_NORMAL);
+    pit->psb->span_add_ba_ex(span,  "componet", "Elasticsearch\\Client", frame->exit_time, pit->pct, BA_NORMAL);
+
+    /* check exception */
+    SET_DEFAULT_EXCEPTION(frame, pit);
+
+    /* add span */
+    mo_chain_add_span(pit->pct->pcl, span);
+}
+/* }}} */
+
+/* {{{ es oo method record */
+static void default_es_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *span = build_com_record(pit, frame, 0);
+    
+    merge_span_extra(span, frame);
+
+    pit->psb->span_add_ba_ex(span,  "componet", "Elasticsearch\\Client", frame->exit_time, pit->pct, BA_NORMAL);
+
+    pit->psb->span_add_ba_ex(span,  "db.type", "elasticsearch", frame->exit_time, pit->pct, BA_NORMAL);
+
+    /* check exception */
+    SET_DEFAULT_EXCEPTION(frame, pit);
+
+    /* add span */
+    mo_chain_add_span(pit->pct->pcl, span);
+}
+/* }}} */
+
 /* {{{ check extension load or not */
 static int extension_loaded(char *extension_name)
 {
@@ -1221,16 +1382,17 @@ static int extension_loaded(char *extension_name)
 }
 /* }}} */
 
-#define INIT_INTERCEPTOR_ELE(nk, record_f)  do {                                                 \
+#define INIT_INTERCEPTOR_ELE(nk, capture_f, record_f)  do {                                                 \
     mo_interceptor_ele_t *name##_ele = (mo_interceptor_ele_t *) pemalloc(sizeof(mo_interceptor_ele_t), 1);      \
     name##_ele->keyword = #nk;                                                                                  \
+    name##_ele->capture = capture_f;                    \
     name##_ele->record = record_f;                                                                              \
     name##_ele->pit = pit;                                                                                      \
     ADD_INTERCEPTOR_ELE(pit, name##_ele);                                                                       \
 }while(0)                                                                                                       \
 
 #define INIT_INTERCEPTOR_ELE_TAG(nk, record_f)  do {                                                 \
-    INIT_INTERCEPTOR_ELE(nk, record_f);              \
+    INIT_INTERCEPTOR_ELE(nk, NULL, record_f);              \
     ADD_INTERCEPTOR_TAG(pit, nk);                                   \
 }while(0)
 
@@ -1250,11 +1412,11 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     if (extension_loaded("PDO")) {
         ADD_INTERCEPTOR_TAG(pit, PDO);
         ADD_INTERCEPTOR_TAG(pit, PDOStatement);
-        INIT_INTERCEPTOR_ELE(PDOStatement@execute,  &pdo_statement_record);
-        INIT_INTERCEPTOR_ELE(PDO@exec,              &pdo_record);
-        INIT_INTERCEPTOR_ELE(PDO@query,             &pdo_record);
-        INIT_INTERCEPTOR_ELE(PDO@commit,            &pdo_record);
-        INIT_INTERCEPTOR_ELE(PDO@prepare,           &pdo_record);
+        INIT_INTERCEPTOR_ELE(PDOStatement@execute,  NULL, &pdo_statement_record);
+        INIT_INTERCEPTOR_ELE(PDO@exec,              NULL, &pdo_record);
+        INIT_INTERCEPTOR_ELE(PDO@query,             NULL, &pdo_record);
+        INIT_INTERCEPTOR_ELE(PDO@commit,            NULL, &pdo_record);
+        INIT_INTERCEPTOR_ELE(PDO@prepare,           NULL, &pdo_record);
     }
 
     if (extension_loaded("mysqli")) {
@@ -1266,16 +1428,16 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE_TAG(mysqli_stmt_prepare,        &mysqli_stmt_prepare_procedural_record);
 
         ADD_INTERCEPTOR_TAG(pit, mysqli);
-        INIT_INTERCEPTOR_ELE(mysqli@__construct,    &mysqli_construct_record);
-        INIT_INTERCEPTOR_ELE(mysqli@mysqli,         &mysqli_construct_record);
-        INIT_INTERCEPTOR_ELE(mysqli@real_connect,   &mysqli_construct_record);
-        INIT_INTERCEPTOR_ELE(mysqli@query,          &mysqli_oo_query_record);
-        INIT_INTERCEPTOR_ELE(mysqli@prepare,        &mysqli_oo_query_record);
-        INIT_INTERCEPTOR_ELE(mysqli@commit,         &mysqli_common_record);
+        INIT_INTERCEPTOR_ELE(mysqli@__construct,    NULL, &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@mysqli,         NULL, &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@real_connect,   NULL, &mysqli_construct_record);
+        INIT_INTERCEPTOR_ELE(mysqli@query,          NULL, &mysqli_oo_query_record);
+        INIT_INTERCEPTOR_ELE(mysqli@prepare,        NULL, &mysqli_oo_query_record);
+        INIT_INTERCEPTOR_ELE(mysqli@commit,         NULL, &mysqli_common_record);
 
         ADD_INTERCEPTOR_TAG(pit, mysqli_stmt);
-        INIT_INTERCEPTOR_ELE(mysqli_stmt@execute,   &mysqli_stmt_exe_oo_record);
-        INIT_INTERCEPTOR_ELE(mysqli_stmt@prepare,   &mysqli_stmt_exe_oo_record);
+        INIT_INTERCEPTOR_ELE(mysqli_stmt@execute,   NULL, &mysqli_stmt_exe_oo_record);
+        INIT_INTERCEPTOR_ELE(mysqli_stmt@prepare,   NULL, &mysqli_stmt_exe_oo_record);
     }
 
     /* curl_multi */
@@ -1287,7 +1449,7 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     /* redis */
     if (extension_loaded("redis")) {
         ADD_INTERCEPTOR_TAG(pit, Redis);
-#define RIE(k)   INIT_INTERCEPTOR_ELE(k,     &redis_record)
+#define RIE(k)   INIT_INTERCEPTOR_ELE(k,    NULL, &redis_record)
         RIE(Redis@connect);RIE(Redis@open);RIE(Redis@pconnect);RIE(Redis@popen);
         RIE(Redis@auth);RIE(Redis@flushAll);RIE(Redis@flushDb);RIE(Redis@save);
         RIE(Redis@append);RIE(Redis@bitCount);RIE(Redis@bitOp);RIE(Redis@decr);
@@ -1304,9 +1466,9 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     if (extension_loaded("memcached")) {
         ADD_INTERCEPTOR_TAG(pit, Memcached);
 
-        INIT_INTERCEPTOR_ELE(Memcached@addServer,     &memcached_add_server_record);
-        INIT_INTERCEPTOR_ELE(Memcached@addServers,    &memcached_add_servers_record);
-#define MIE(k)   INIT_INTERCEPTOR_ELE(k,     &memcached_common_record)
+        INIT_INTERCEPTOR_ELE(Memcached@addServer,    NULL,  &memcached_add_server_record);
+        INIT_INTERCEPTOR_ELE(Memcached@addServers,   NULL, &memcached_add_servers_record);
+#define MIE(k)   INIT_INTERCEPTOR_ELE(k,     NULL, &memcached_common_record)
         MIE(Memcached@add);MIE(Memcached@addByKey);
         MIE(Memcached@append);MIE(Memcached@appendByKey);
         MIE(Memcached@cas);MIE(Memcached@casByKey);MIE(Memcached@decrement);
@@ -1321,20 +1483,39 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         MIE(Memcached@touchByKey);
     }
 
-   if (extension_loaded("mongodb")) {
+    /* add mongodb */
+    if (extension_loaded("mongodb")) {
         ADD_INTERCEPTOR_TAG(pit, MongoDB\\Driver\\Manager);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@__construct, &mongodb_record);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeBulkWrite, &mongodb_record);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeCommand, &mongodb_record);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeQuery, &mongodb_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@__construct, NULL, &mongodb_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeBulkWrite, NULL, &mongodb_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeCommand, NULL, &mongodb_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Manager@executeQuery, NULL, &mongodb_record);
 
 
         ADD_INTERCEPTOR_TAG(pit, MongoDB\\Driver\\Server);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeBulkWrite, &mongodb_server_record);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeCommand, &mongodb_server_record);
-        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeQuery, &mongodb_server_record);
-   }
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeBulkWrite, NULL, &mongodb_server_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeCommand, NULL,  &mongodb_server_record);
+        INIT_INTERCEPTOR_ELE(MongoDB\\Driver\\Server@executeQuery, NULL,  &mongodb_server_record);
+    }
 
+    /* user customer */
+    /* guzzle */
+    ADD_INTERCEPTOR_TAG(pit, GuzzleHttp\\Client);
+    INIT_INTERCEPTOR_ELE(GuzzleHttp\\Client@request, &guzzle_request_capture, &guzzle_request_record);
+
+    /* elastic search */
+    {
+        ADD_INTERCEPTOR_TAG(pit, Elasticsearch\\Client);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@index, &default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@get, &default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@search, &default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@delete, &default_capture, &es_request_record);
+
+
+        ADD_INTERCEPTOR_TAG(pit, Elasticsearch\\Namespaces\\IndicesNamespace);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@delete, &default_capture,  &default_es_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@create, &default_capture, &default_es_record);
+    }
 }
 
 /* intercept rinit */

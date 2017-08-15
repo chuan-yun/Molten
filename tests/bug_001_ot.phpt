@@ -28,8 +28,8 @@ mysqli_real_connect($mysql, $true_db['host'], $true_db['user'], $true_db['passwd
 $mysql->query($sql);
 ?>
 --EXPECTF--
-{"operationName":"real_connect","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s.1","parentSpanID":"1"},"tags":{"span.kind":"client","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
-{"operationName":"query","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s.2","parentSpanID":"1"},"tags":{"span.kind":"client","db.statement":"select * from configs","db.type":"mysql","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
-{"operationName":"mysqli_real_connect","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s.3","parentSpanID":"1"},"tags":{"span.kind":"client","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
-{"operationName":"query","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s.4","parentSpanID":"1"},"tags":{"span.kind":"client","db.statement":"select * from configs","db.type":"mysql","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
+{"operationName":"real_connect","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
+{"operationName":"query","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","db.statement":"select * from configs","db.type":"mysql","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
+{"operationName":"mysqli_real_connect","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
+{"operationName":"query","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","db.statement":"select * from configs","db.type":"mysql","peer.ipv4":"%s","peer.port":%d,"peer.service":"mysql","db.instance":"%s"},"logs":[]}
 {"operationName":"cli","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s"},"tags":{"span.kind":"server"},"logs":[]}

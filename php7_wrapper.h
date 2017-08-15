@@ -73,6 +73,11 @@
 #define mo_zend_is_auto_global  zend_is_auto_global
 #define mo_zend_array_count     zend_hash_num_elements
 
+static inline void mo_array_merge(zval *dest, zval *src TSRMLS_DC) 
+{
+    php_array_merge(Z_ARRVAL_P(dest), Z_ARRVAL_P(src), 1);  
+}
+
 static inline void array_init_persist(zval *arg ZEND_FILE_LINE_DC)
 {
     Z_ARRVAL_P(arg) = (HashTable *)pemalloc(sizeof(HashTable), 1);
@@ -233,6 +238,11 @@ static inline int mo_zend_get_constant(char *key, int len, zval *z)
     } else {
         return 0;
     }
+}
+
+static inline void mo_array_merge(zval *dest, zval *src TSRMLS_DC) 
+{
+    php_array_merge_recursive(Z_ARRVAL_P(dest), Z_ARRVAL_P(src));  
 }
 
 static inline void array_init_persist(zval *arg ZEND_FILE_LINE_DC)

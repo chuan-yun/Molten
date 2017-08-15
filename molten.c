@@ -47,7 +47,9 @@ PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
 PHP_FUNCTION(molten_curl_reset);
+PHP_FUNCTION(molten_span_format);
 
+void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC);
 static void frame_destroy(mo_frame_t *frame);
 #if PHP_VERSION_ID < 70000
@@ -94,6 +96,7 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_setopt_array, NULL)
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
+    PHP_FE(molten_span_format, NULL)
 #ifdef PHP_FE_END
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 #else
@@ -281,14 +284,13 @@ PHP_FUNCTION(molten_curl_exec)
 {
     /* before */
     zval *res;
-    char *span_id;
+    char *span_id = NULL;
     uint64_t entry_time;
     
     /* build span_id */
     if (PTG(pct).pch.is_sampled == 1) {
         entry_time = mo_time_usec();
-        PTG(pit).span_count++;
-        PTG(psb).build_span_id(&span_id, PTG(pct).pch.span_id->val, PTG(pit).span_count);
+        push_span_context(&PTG(span_stack));
     }
 
     int result = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "r", &res);
@@ -307,7 +309,8 @@ PHP_FUNCTION(molten_curl_exec)
             is_init = 1;
         }
         
-        build_http_header(pit->pct, option, span_id);
+        retrieve_span_id(&PTG(span_stack), &span_id);
+        add_http_trace_header(pit->pct, option, span_id);
 
         /* curl set header internel call */
         pit->curl_header_internel_call = HEADER_INTERNAL_CALL;
@@ -344,7 +347,10 @@ PHP_FUNCTION(molten_curl_exec)
         uint64_t current_time = mo_time_usec(); 
         uint64_t duration = current_time - entry_time;
         zval *curl_span;
-        PTG(psb).start_span(&curl_span, "php_curl", PTG(pct).pch.trace_id->val, span_id, PTG(pct).pch.span_id->val, entry_time, current_time, &PTG(pct), AN_CLIENT);
+        char *parent_span_id;
+        retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+
+        PTG(psb).start_span(&curl_span, "php_curl", PTG(pct).pch.trace_id->val, span_id, parent_span_id, entry_time, current_time, &PTG(pct), AN_CLIENT);
         build_curl_bannotation(curl_span, (long)current_time, &PTG(pit), res, "curl_exec", 1);
 
         /* record response if response exist */
@@ -364,7 +370,7 @@ PHP_FUNCTION(molten_curl_exec)
             }
         }
         mo_chain_add_span(&PTG(pcl), curl_span);
-        efree(span_id);
+        pop_span_context(&PTG(span_stack));
     }
 
 }
@@ -426,6 +432,25 @@ PHP_FUNCTION(molten_curl_reset)
 }
 /* }}} */
 
+/* {{{ molten span format */
+PHP_FUNCTION(molten_span_format)
+{ 
+#ifdef USE_LEVEL_ID
+#if PHP_MAJOR_VERSION < 7
+    RETURN_STRINGL("level", sizeof("level") -1, 1);
+#else
+    RETURN_STRINGL("level", sizeof("level") -1);
+#endif
+#else
+#if PHP_MAJOR_VERSION < 7
+    RETURN_STRINGL("random", sizeof("random") -1, 1);
+#else
+    RETURN_STRINGL("random", sizeof("random") -1);
+#endif
+#endif
+}
+/* }}} */
+
 /* {{{ molten_module_entry
 */
 zend_module_entry molten_module_entry = {
@@ -464,7 +489,6 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",          PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.span_id_format",         "level",       PHP_INI_SYSTEM, OnUpdateString, span_id_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
@@ -532,7 +556,7 @@ PHP_MINIT_FUNCTION(molten)
     mo_obtain_local_ip(PTG(ip));
     mo_shm_ctor(&PTG(msm));   
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
-    mo_span_ctor(&PTG(psb), PTG(span_format), PTG(span_id_format));
+    mo_span_ctor(&PTG(psb), PTG(span_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
     mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
@@ -606,17 +630,18 @@ PHP_RINIT_FUNCTION(molten)
     /* Judge sampling */ 
     mo_ctrl_sampling(&PTG(prt), &PTG(pct));
 
+    /* Init log module */
+    if (PTG(pct).pch.is_sampled == 1) {
+        mo_chain_log_init(&PTG(pcl));
+        init_span_context(&PTG(span_stack)); 
+    }
+
     /* Tracing basic info generate */
-    mo_chain_ctor(&PTG(pct), &PTG(pcl), &PTG(psb), PTG(service_name), PTG(ip));
+    mo_chain_ctor(&PTG(pct), &PTG(pcl), &PTG(psb), &PTG(span_stack), PTG(service_name), PTG(ip));
 
     /* Init  intercept module */
     mo_intercept_init(&PTG(pit));
 
-    /* Init log module */
-    if (PTG(pct).pch.is_sampled == 1) {
-        mo_chain_log_init(&PTG(pcl));
-    }
-    
     return SUCCESS;
 }
 /* }}} */
@@ -638,11 +663,12 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     PTG(in_request) = 0;
     
     /* Chain dtor */
-    mo_chain_dtor(&PTG(pct), &PTG(psb));
+    mo_chain_dtor(&PTG(pct), &PTG(psb), &PTG(span_stack));
 
     /* Flush and dtor log */
     if (PTG(pct).pch.is_sampled == 1) {
         mo_chain_log_flush(&PTG(pcl));
+        mo_stack_destroy(&PTG(span_stack));
     }
 
     /* Ctrl record */
@@ -666,6 +692,7 @@ PHP_MINFO_FUNCTION(molten)
 {
     php_info_print_table_start();
     php_info_print_table_header(2, "molten support", "enabled");
+    php_info_print_table_header(2, "plugin support", "pdo mysqli phpredis memcahced curl mongodb guzzle elasticsearch");
     php_info_print_table_end();
 
     DISPLAY_INI_ENTRIES();
@@ -713,11 +740,12 @@ static inline zend_function *obtain_zend_function(zend_bool internal, zend_execu
 /* {{{ Destroy frame */
 static void frame_destroy(mo_frame_t *frame)
 {
-    int i;
-
     smart_string_free(&frame->class);
     smart_string_free(&frame->function);
-    efree(frame->span_id);
+    pop_span_context(&PTG(span_stack));
+    if (frame->span_extra) {
+        mo_zval_dtor(frame->span_extra);
+    }
 }
 /* }}} */
 
@@ -747,6 +775,9 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     /* args init */
     args = NULL;
     frame->arg_count = 0;
+    
+    /* link to global stack */
+    frame->span_stack = &PTG(span_stack);
 
     /* class name */
 #if PHP_VERSION_ID < 70000
@@ -774,9 +805,25 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
         smart_string_appends(&frame->function, MO_STR(zend_resolve_method_name(MO_EX_OBJ(ex) ? MO_EX_OBJCE(ex) : zf->common.scope, zf)));
     }
 #endif
+    
+#if PHP_VERSION_ID < 70000
+    if (caller && MO_EX_OBJ(caller)) {
+        /* obj */
+        frame->object = MO_EX_OBJ_ZVAL(caller);
+    }
+#else
+    if (ex && MO_EX_OBJ(ex)) {
+        /* obj */
+        frame->object = MO_EX_OBJ_ZVAL(ex);
+    }
+#endif
 
-    /* obj */
-    frame->object = MO_EX_OBJ_ZVAL(ex);
+    /* scope */
+#if PHP_VERSION_ID < 70100
+    frame->scope = EG(scope);
+#else
+    frame->scope = EG(fake_scope);
+#endif
 
     /* args */
 #if PHP_VERSION_ID < 50300
@@ -793,6 +840,17 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     frame->arg_count = ZEND_CALL_NUM_ARGS(ex);
 #endif
 
+    /* Something is very different between user function and internal function */
+
+    /* ori_args for user defined method/func will be dtor at some time, 
+     * so we must capture some info before execute 
+     * NOTICE, we also can add ref for every zval like 'debug_backtrace', 
+     * but it will trigger performance problem.
+     *
+     * php5.6/5.5/5.4, if args not object always do this action  SEPARATE_ZVAL_TO_MAKE_IS_REF(arg).
+     * php7.0/7.1 here is a long decide
+     * at resolve time, we must get from array, there will waste some time.
+     */
 #if PHP_VERSION_ID < 70000
     frame->ori_args = args;
 #else
@@ -812,8 +870,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
 
     smart_string_0(&frame->class);
     smart_string_0(&frame->function);
-    PTG(pit).span_count++;
-    PTG(psb).build_span_id(&frame->span_id, PTG(pct).pch.span_id->val, PTG(pit).span_count);
+    push_span_context(&PTG(span_stack));
 }
 /* }}} */
 
@@ -882,6 +939,11 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
     /* In PHP 5.5 and later, execute_data is the data going to be executed, not
      * the entry point, so we switch to previous data. The internal function is
      * a exception because it's no need to execute by op_array. */
+
+    /* detail you can see file: Zend/zend_vm_execute.h.
+     * func: zend_do_fcall_common_helper_SPEC.
+     * fix: if fn.flags & ZEND_ACC_GENERATOR not zero, here is some wrong.
+     */
     if (!internal && execute_data->prev_execute_data) {
         caller = execute_data->prev_execute_data;
     }
@@ -922,6 +984,8 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
 #else
         frame_build(&frame, internal, MO_FRAME_ENTRY, caller, execute_data, NULL TSRMLS_CC);
 #endif
+        /* run capture */
+        i_ele->capture != NULL ? i_ele->capture(&PTG(pit), &frame) : NULL;  
 
         /* Register return value ptr */
 #if PHP_VERSION_ID < 70000
@@ -1102,3 +1166,87 @@ void molten_error_cb(int type, const char *error_filename, const uint error_line
     trace_original_error_cb(type, error_filename, error_lineno, format, args);
 }
 /* }}} */
+
+/* {{{ add http header */
+static char *add_http_header(zval *header, char *key, char *value)
+{
+    int value_size = strlen(key) + sizeof(": ") - 1 + strlen(value) + 1;
+    char *pass_value = emalloc(value_size);
+    snprintf(pass_value, value_size, "%s: %s", key, value);
+    pass_value[value_size - 1] = '\0';
+    mo_add_next_index_string(header, pass_value, 1);
+    efree(pass_value);
+}
+/* }}} */
+
+/* add http header */
+void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
+{
+    mo_chain_key_t *pck = NULL;
+    if (Z_TYPE_P(header) == IS_ARRAY) {
+
+        if (pct->pch.is_sampled == 1) {
+
+            char *parent_span_id;
+            retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+
+            /* append current header */
+            HashTable *ht = pct->pch.chain_header_key;
+            for(zend_hash_internal_pointer_reset(ht); 
+                    zend_hash_has_more_elements(ht) == SUCCESS;
+                    zend_hash_move_forward(ht)) {
+                
+                if (mo_zend_hash_get_current_data(ht, (void **)&pck) == SUCCESS) {
+
+                    char *pass_value;
+                    int value_size;
+                    char *value;
+                    if (strncmp(pck->name, "span_id", sizeof("span_id") - 1) == 0 && span_id != NULL) {
+                        value = span_id;
+                    } else if (strncmp(pck->name, "parent_span_id", sizeof("parent_span_id") - 1) == 0 && parent_span_id != NULL) {
+                        value = parent_span_id;
+                    }else {
+                        value = pck->val;
+                    }
+                    value_size = strlen(pck->pass_key) + sizeof(": ") - 1 + strlen(value) + 1;
+                    pass_value = emalloc(value_size);
+                    snprintf(pass_value, value_size, "%s: %s", pck->pass_key, value);
+                    pass_value[value_size - 1] = '\0';
+                    mo_add_next_index_string(header, pass_value, 1);
+                    efree(pass_value);
+                }
+            }
+        } else {
+
+            int is_set_flag = 0;
+            HashTable *header_ht = Z_ARRVAL_P(header);
+            zval *tmp_header; 
+
+#if PHP_VERSION_ID < 70000
+            /* check set current x-w-sampled flag or not */
+            for(zend_hash_internal_pointer_reset(header_ht); 
+                    zend_hash_has_more_elements(header_ht) == SUCCESS;
+                    zend_hash_move_forward(header_ht)) {
+                if (mo_zend_hash_get_current_data(header_ht, (void **)&tmp_header) == SUCCESS) {
+                    if (strncmp(Z_STRVAL_P(tmp_header), MOLTEN_HEADER_SAMPLED, sizeof(MOLTEN_HEADER_SAMPLED) - 1) == 0) {
+                        is_set_flag = 1;
+                    }
+                }
+            }
+#else
+            ZEND_HASH_FOREACH_VAL(header_ht, tmp_header) {
+                if (strncmp(Z_STRVAL_P(tmp_header), MOLTEN_HEADER_SAMPLED, sizeof(MOLTEN_HEADER_SAMPLED) - 1) == 0) {
+                    is_set_flag = 1;
+                }
+            } ZEND_HASH_FOREACH_END();
+#endif
+            
+            if (is_set_flag == 0) {
+                mo_add_next_index_string(header, MOLTEN_HEADER_SAMPLED": 0", 1);
+            }
+
+        }
+    }
+}
+
+

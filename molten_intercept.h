@@ -34,6 +34,7 @@
 #include "ext/mysqlnd/mysqlnd_structs.h"
 #endif
 
+#include "ext/standard/url.h"
 #include "ext/pcre/php_pcre.h"
 #include "Zend/zend_exceptions.h"
 
@@ -84,12 +85,18 @@ typedef struct {
     mo_span_builder    *psb; 
 }mo_interceptor_t;
 
+
+/* for user defined function or class, the args will be dtor at some time, 
+ * if we get args after execute, maybe cano not resolve arg,
+ * so we set two phases to merge info.
+ */
 typedef void (*capture_func)(mo_interceptor_t *pit, mo_frame_t *frame);
 typedef void (*record_func)(mo_interceptor_t *pit, mo_frame_t *frame);
 
 /* interceptor element */ 
 typedef struct {
     char *keyword;
+    capture_func capture;
     record_func record;
 
     mo_interceptor_t *pit;

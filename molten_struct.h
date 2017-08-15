@@ -24,6 +24,7 @@
 
 #include "php7_wrapper.h"
 #include "molten_log.h"
+#include "molten_stack.h"
 
 /* key val map */
 typedef struct {
@@ -61,6 +62,9 @@ typedef struct mo_chain_st {
 
     /* error info */
     zval *error_list;
+
+    /* span stack */
+    mo_stack *span_stack;               /* link to global stack */ 
     
     /* excute time */
     long execute_begin_time;            /* execute begin time */
@@ -85,23 +89,27 @@ typedef struct mo_chain_st {
 } mo_chain_t;
 
 typedef struct {
-    uint8_t         type;             /* frame type, entry or exit */
-    uint32_t        level;            /* nesting level */
-    smart_string    function;         /* function name */
-    smart_string    class;            /* class name */
+    uint8_t             type;             /* frame type, entry or exit */
+    uint32_t            level;            /* nesting level */
+    smart_string        function;         /* function name */
+    smart_string        class;            /* class name */
 
-    uint32_t        arg_count;        /* arguments number */
+    uint32_t            arg_count;        /* arguments number */
 
-    int64_t         entry_time;       /* entry wall time */ 
-    int64_t         exit_time;        /* exit wall time */
+    int64_t             entry_time;       /* entry wall time */ 
+    int64_t             exit_time;        /* exit wall time */
 
 #if PHP_VERSION_ID < 70000
-    zval            **ori_args;       /* origin args */
+    zval                **ori_args;       /* origin args */
 #else
-    zval            *ori_args;        /* origin args */
+    zval                *ori_args;        /* origin args */
 #endif
-    zval            *object;          /* object */
-    zval            *ori_ret;         /* origin ret */
-    char            *span_id;         /* current span id */
+    zval                *object;          /* object */
+    zval                *ori_ret;         /* origin ret */
+    zend_class_entry    *scope;           /* class entry */
+
+    mo_stack            *span_stack;      /* global span stack */
+
+    zval                *span_extra;      /* because of runtime param will be delete, so we need to get info after execute, extra for user defiend func */
 } mo_frame_t;
 #endif

@@ -17,6 +17,10 @@
 #ifndef MOLTEN_SPAN_H
 #define MOLTEN_SPAN_H
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "stdint.h"
 #include <netinet/in.h>
 
@@ -25,6 +29,7 @@
 #include "php7_wrapper.h"
 #include "molten_struct.h"
 #include "molten_util.h"
+#include "molten_stack.h"
 
 /* log format */
 #define ZIPKIN      1
@@ -36,15 +41,6 @@
 
 /* ba type */
 enum ba_type {BA_NORMAL, BA_SA, BA_SA_HOST, BA_SA_IP, BA_SA_DSN, BA_ERROR, BA_PATH};
-
-/* span context */
-typedef struct {
-    char *trace_id;             /* this used global trace id */
-    char *parent_span_id;       /* use father node id */
-    char *span_id;              /* use self node id */
-    char *sampled;              /* this used global sampled tag */
-    uint32_t span_count;        /* current span count */
-} span_context;
 
 /* span id builder */
 typedef void (*build_span_id_func)(char **span_id, char *parent_span_id, int span_count);
@@ -61,7 +57,6 @@ typedef struct {
     start_span_ex_func      start_span_ex;
     span_add_ba_func        span_add_ba;
     span_add_ba_ex_func     span_add_ba_ex;
-    build_span_id_func      build_span_id;
 }mo_span_builder;
 
 /* {{{ span builder for two format */
@@ -76,8 +71,32 @@ void ot_span_add_ba_builder(zval *span, const char *key, const char *value, long
 void ot_span_add_ba_ex_builder(zval *span, const char *key, const char *value, long timestamp, struct mo_chain_st *pct, uint8_t ba_type);
 /* }}} */
 
+/* {{{ span context for build trace context relation */
+
+/* the traceId and sampled can use global, no need copy point for every context */
+#ifdef USE_LEVEL_ID
+typedef struct {
+    char *span_id;
+    int span_count;
+} mo_span_context;
+#endif
+
+void init_span_context(mo_stack *stack);
+void push_span_context(mo_stack *stack);
+void push_span_context(mo_stack *stack);
+void push_span_context_with_id(mo_stack *stack, char *span_id);
+void pop_span_context(mo_stack *stack);
+void retrieve_span_id(mo_stack *stack, char **span_id);
+void retrieve_parent_span_id(mo_stack *stack, char **parent_span_id);
+void destroy_span_context(mo_stack *stack);
+
+void retrieve_span_id_4_frame(mo_frame_t *frame, char **span_id);
+void retrieve_parent_span_id_4_frame(mo_frame_t *frame, char **parent_span_id);
+/* }}} */
+
+
 /* {{{ pt span ctor */
-static void inline mo_span_ctor(mo_span_builder *psb, char *span_format, char *span_id_format)
+static void inline mo_span_ctor(mo_span_builder *psb, char *span_format)
 {
     if(strncmp(span_format, "zipkin", sizeof("zipkin") - 1) == 0) {
         psb->type = ZIPKIN;
@@ -91,13 +110,6 @@ static void inline mo_span_ctor(mo_span_builder *psb, char *span_format, char *s
         psb->start_span_ex      = &ot_start_span_ex_builder;
         psb->span_add_ba        = &ot_span_add_ba_builder;
         psb->span_add_ba_ex     = &ot_span_add_ba_ex_builder;
-    }
-
-    // level or random 
-    if(strncmp(span_id_format, "level", sizeof("level") - 1) == 0) {
-        psb->build_span_id = &build_span_id_level;
-    } else {
-        psb->build_span_id = &build_span_id_random;
     }
 }
 /* }}} */
