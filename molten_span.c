@@ -16,6 +16,141 @@
 
 #include "molten_span.h"
 
+/* use span context */
+/* {{{ build span context */
+void span_context_dtor(void *element)
+{
+#ifdef USE_LEVEL_ID
+    mo_span_context *context = (mo_span_context *)element;
+    efree(context->span_id);
+    context->span_count = 0;
+#else
+    efree(*(char **)element);
+#endif
+}
+/* }}} */
+
+/* {{{ init span context */
+void init_span_context(mo_stack *stack)
+{
+#ifdef USE_LEVEL_ID
+    mo_stack_init(stack, sizeof(mo_span_context), &span_context_dtor);
+#else
+    mo_stack_init(stack, sizeof(char *), &span_context_dtor);
+#endif
+}
+/* }}} */
+
+/* {{{ push span context */
+void push_span_context(mo_stack *stack)
+{
+#ifdef USE_LEVEL_ID
+    char *span_id; 
+    mo_span_context context;
+    if (!mo_stack_empty(stack)) {
+        mo_span_context *parent_node = (mo_span_context *)mo_stack_top(stack);
+        build_span_id_level(&span_id, parent_node->span_id, parent_node->span_count);
+        parent_node->span_count++;
+    } else {
+        build_span_id_level(&span_id, NULL, 0);
+    }
+    
+    context.span_id = span_id;
+    context.span_count = 1;
+    mo_stack_push(stack, &context);
+#else
+    char *span_id = NULL;
+    build_span_id_random(&span_id, NULL, 0);
+    mo_stack_push(stack, &span_id);
+#endif
+}
+/* }}} */
+
+/* {{{ push span context with id */
+void push_span_context_with_id(mo_stack *stack, char *span_id)
+{
+    char *tmp_span_id = estrdup(span_id);
+#ifdef USE_LEVEL_ID
+    mo_span_context context;
+    if (!mo_stack_empty(stack)) {
+        mo_span_context *parent_node = (mo_span_context *)mo_stack_top(stack);
+        parent_node->span_count++;
+    }
+    context.span_id = span_id;
+    context.span_count = 1;
+    mo_stack_push(stack, &context);
+#else
+    mo_stack_push(stack, &tmp_span_id);
+#endif
+}
+/* }}} */
+
+/* {{{ pop span context */
+void pop_span_context(mo_stack *stack)
+{
+    mo_stack_pop(stack, NULL);
+}
+/* }}} */
+
+/* {{{ retrieve span id */
+void retrieve_span_id(mo_stack *stack, char **span_id)
+{
+#ifdef USE_LEVEL_ID
+    mo_span_context *context = (mo_span_context *) mo_stack_top(stack);
+    if (context == NULL) {
+        *span_id = NULL;
+    } else {
+        *span_id = context->span_id;
+    }
+#else
+    char **sid = (char **)mo_stack_top(stack);
+    if (sid == NULL) {
+        *span_id = NULL;
+    } else {
+        *span_id = *sid;
+    }
+#endif
+}
+/* }}} */
+
+/* {{{ retrieve parent span id */
+void retrieve_parent_span_id(mo_stack *stack, char **parent_span_id)
+{
+#ifdef USE_LEVEL_ID
+   mo_span_context *context = (mo_span_context *) mo_stack_sec_element(stack);
+   if (context == NULL) {
+        *parent_span_id = NULL;
+   } else {
+        *parent_span_id = context->span_id;
+   }
+#else
+    char **psid = (char **)mo_stack_sec_element(stack);
+    if (psid == NULL) {
+        *parent_span_id = NULL;
+    } else {
+        *parent_span_id = *psid;
+    }
+#endif
+}
+/* }}} */
+
+/* {{{ destroy all span context */
+void destroy_span_context(mo_stack *stack)
+{
+   mo_stack_destroy(stack);
+}
+/* }}} */
+
+void retrieve_span_id_4_frame(mo_frame_t *frame, char **span_id)
+{
+   retrieve_span_id(frame->span_stack, span_id);
+}
+
+void retrieve_parent_span_id_4_frame(mo_frame_t *frame, char **parent_span_id)
+{
+   retrieve_parent_span_id(frame->span_stack, parent_span_id);
+}
+
 /* {{{ build zipkin format main span */
 void zn_start_span(zval **span, char *trace_id, char *server_name, char *span_id, char *parent_id, long timestamp, long duration) 
 {
@@ -51,7 +186,13 @@ void zn_start_span(zval **span, char *trace_id, char *server_name, char *span_id
 /* {{{ build zipkin span ex */
 void zn_start_span_ex(zval **span, char *server_name, struct mo_chain_st *pct, mo_frame_t *frame)
 {
-    build_main_span(span, pct->pch.trace_id->val, server_name, frame->span_id, pct->pch.span_id->val, frame->entry_time, frame->exit_time - frame->entry_time);
+    char *span_id;
+    char *parent_span_id;
+
+    retrieve_span_id_4_frame(frame, &span_id);
+    retrieve_parent_span_id_4_frame(frame, &parent_span_id);
+
+    build_main_span(span, pct->pch.trace_id->val, server_name, span_id, parent_span_id, frame->entry_time, frame->exit_time - frame->entry_time);
 }
 /* }}} */
 
@@ -95,6 +236,7 @@ void zn_add_span_annotation(zval *span, const char *value, long timestamp, char 
     if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "annotations", sizeof("annotations"), (void **)&annotations) == FAILURE) {
         return;
     }
+
     zval *annotation;
     MO_ALLOC_INIT_ZVAL(annotation);
     array_init(annotation);
@@ -103,6 +245,7 @@ void zn_add_span_annotation(zval *span, const char *value, long timestamp, char 
     zn_add_endpoint(annotation, service_name, ipv4, port);
     add_next_index_zval(annotations, annotation);
     MO_FREE_ALLOC_ZVAL(annotation);
+
 }
 /* }}} */
 
@@ -120,10 +263,16 @@ void zn_add_span_bannotation(zval *span, const char *key, const char *value, cha
         return;
     }
 
+    int init = 0;
     zval *bannotations;
     if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "binaryAnnotations", sizeof("binaryAnnotations"), (void **)&bannotations) == FAILURE) {
-        return;
+        /* add binaryAnnotationss */
+        MO_ALLOC_INIT_ZVAL(bannotations);
+        array_init(bannotations);
+        add_assoc_zval(span, "binaryAnnotations", bannotations);
+        init = 1;
     }
+
     zval *bannotation;
     MO_ALLOC_INIT_ZVAL(bannotation);
     array_init(bannotation);
@@ -132,6 +281,10 @@ void zn_add_span_bannotation(zval *span, const char *key, const char *value, cha
     zn_add_endpoint(bannotation, service_name, ipv4, port);
     add_next_index_zval(bannotations, bannotation);
     MO_FREE_ALLOC_ZVAL(bannotation);
+
+    if (init == 1) {
+        MO_FREE_ALLOC_ZVAL(bannotations);
+    }
 }
 /* }}} */
 
@@ -288,7 +441,13 @@ void zn_start_span_builder(zval **span, char *service_name, char *trace_id, char
 
 void zn_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type)
 {
-    zn_start_span_builder(span, service_name, pct->pch.trace_id->val, frame->span_id, pct->pch.span_id->val, frame->entry_time, frame->exit_time, pct, an_type);
+    char *span_id;
+    char *parent_span_id;
+
+    retrieve_span_id_4_frame(frame, &span_id);
+    retrieve_parent_span_id_4_frame(frame, &parent_span_id);
+
+    zn_start_span_builder(span, service_name, pct->pch.trace_id->val, span_id, parent_span_id, frame->entry_time, frame->exit_time, pct, an_type);
 }
 
 void zn_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type)
@@ -314,7 +473,13 @@ void ot_start_span_builder(zval **span, char *service_name, char *trace_id, char
 
 void ot_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type)
 {
-    ot_start_span_builder(span, service_name, pct->pch.trace_id->val, frame->span_id, pct->pch.span_id->val, frame->entry_time, frame->exit_time, pct, an_type);
+    char *span_id;
+    char *parent_span_id;
+
+    retrieve_span_id_4_frame(frame, &span_id);
+    retrieve_parent_span_id_4_frame(frame, &parent_span_id);
+
+    ot_start_span_builder(span, service_name, pct->pch.trace_id->val, span_id, parent_span_id, frame->entry_time, frame->exit_time, pct, an_type);
 }
 
 void ot_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type)

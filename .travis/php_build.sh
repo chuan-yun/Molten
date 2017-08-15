@@ -69,7 +69,7 @@ function build()
         param_ext=""
     fi
 
-    param_ext="$param_ext --with-bz2 --enable-sockets --with-curl --with-zlib --enable-zip --enable-json --enable-session --enable-pdo --with-mysql=mysqlnd --with-mysqli=mysqlnd --with-pdo-mysql=mysqlnd --with-pear --enable-xml --enable-libxml"
+    param_ext="$param_ext --with-bz2 --enable-sockets --with-curl --with-zlib --enable-zip --enable-json --enable-session --enable-pdo --with-mysql=mysqlnd --with-mysqli=mysqlnd --with-pdo-mysql=mysqlnd --with-pear --enable-xml --enable-libxml --enable-phar --enable-filter --enable-hash --with-iconv --with-openssl"
     cmd="./configure --quiet --prefix=$prefix/$buildname $param_general $param_sapi $param_ext"
 
     # configure

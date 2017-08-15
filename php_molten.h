@@ -40,6 +40,7 @@ extern zend_module_entry molten_module_entry;
 #include "molten_ctrl.h"
 #include "molten_status.h"
 #include "molten_report.h"
+#include "molten_stack.h"
 #include "php7_wrapper.h"
 
 #ifndef HOST_NAME_MAX
@@ -63,7 +64,6 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     char                    *service_name;          /* service name */
     zend_bool               tracing_cli;            /* enable cli  tracing */
     char                    *span_format;           /* the span format */
-    char                    *span_id_format;        /* the span id format */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
     char                    *notify_uri;            /* notify uri */
@@ -82,6 +82,8 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     mo_ctrl_t               prt;                    /* control module */
     mo_report_t             pre;                    /* report module */
     mo_shm_t                msm;                    /* shm module */
+
+    mo_stack                span_stack;             /* span stack */
 
     char                    ip[INET_ADDRSTRLEN];    /* device ip */
     char                    host_name[HOST_NAME_MAX];   /* host name */

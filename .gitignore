@@ -66,6 +66,9 @@ ltmain.sh
 missing
 mkinstalldirs
 modules
+tmp-php.ini
+
+# Tests
 run-tests*.php
 tests/*.diff
 tests/*.exp
@@ -76,4 +79,5 @@ tests/*.sh
 tests/nctmplog
 tests/tmplog
 tests/*.mem
-tmp-php.ini
+tests/vendor
+tests/composer.lock

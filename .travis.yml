@@ -12,6 +12,7 @@ services:
     - redis-server
     - mongodb
     - memcached
+    - elasticsearch
 
 cache:
     directories:
@@ -41,19 +42,33 @@ before_install:
     - MO_PHP_PATH=${TRAVIS_BUILD_DIR}/php_build/php-${MO_PHP_VERSION}
     - MO_PHP_BIN=${MO_PHP_PATH}/bin/php
     - MO_PHP_PECL=${MO_PHP_PATH}/bin/pecl
+    - MO_PHP_TEST=${TRAVIS_BUILD_DIR}/tests
+    - MO_EXTENSION_NEW=level
     
     # build PHP without ZTS by ourselves...
     - mkdir -p php_source php_build
     - (cd php_source && ls -l php-${MO_PHP_VERSION}.tar.bz2 || ../.travis/php_get.sh ${MO_PHP_VERSION})
     - (cd php_source && ls -l ${MO_PHP_BIN} || ../.travis/php_build.sh ${TRAVIS_BUILD_DIR}/php_build php-${MO_PHP_VERSION}.tar.bz2)
 
+    # install composer install vendor
+    - (.travis/composer_install.sh $MO_PHP_VERSION $MO_PHP_TEST)
+    - (cd tests && curl -s http://getcomposer.org/installer|$MO_PHP_BIN && $MO_PHP_BIN composer.phar install)
+
     # install extension
     - (sh .travis/ext_install.sh $MO_PHP_PATH $MO_PHP_VERSION)
 
 before_script:
+    - sleep 10
+
+    # build a new extension for level id test
+    #- .travis/ext_build.sh ${MO_PHP_PATH} $MO_EXTENSION_NEW
+    
+    # build normal extension
     - .travis/ext_build.sh ${MO_PHP_PATH}
 
 script:
     - (REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=${MO_PHP_BIN} ${MO_PHP_BIN} -n run-tests.php -q -n -d extension=molten.so -d extension=redis.so -d extension=mongodb.so -d extension=memcached.so --show-diff)
+
+      #- (REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=${MO_PHP_BIN} ${MO_PHP_BIN} -n run-tests.php -q -n -d extension=${MO_EXTENSION_NEW}.so -d extension=redis.so -d extension=mongodb.so -d extension=memcached.so --show-diff)
 
 after_script:

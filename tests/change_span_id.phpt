@@ -1,7 +1,7 @@
 --TEST--
 Check span generate rule(1.2.xx)
 --SKIPIF--
-<?php if (ini_get("molten.span_format") != "zipkin") print "skip"; ?>
+<?php if ((ini_get("molten.span_format") != "zipkin") || (molten_span_format() == "random")) print "skip"; ?>
 --INI--
 molten.enable=1
 molten.tracing_cli=1

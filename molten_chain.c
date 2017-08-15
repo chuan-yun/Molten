@@ -118,12 +118,19 @@ void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
     
     /* generate trace_id */
     if (!pch->trace_id->val) {
-       rand64hex(&pch->trace_id->val);
+        rand64hex(&pch->trace_id->val);
+    }
+
+    /* push parent context to stack */
+    if (pch->parent_span_id->val) {
+        push_span_context_with_id(pct->span_stack, pct->pch.parent_span_id->val);
     }
 
     /* generate span_id */
     if (!pch->span_id->val) {
-        psb->build_span_id(&pch->span_id->val, NULL, 0);
+        push_span_context(pct->span_stack);
+    } else {
+        push_span_context_with_id(pct->span_stack, pct->pch.span_id->val);
     }
 
     /* sampled, after we will do it dynamics */
@@ -134,78 +141,6 @@ void mo_build_chain_header(mo_chain_t *pct, mo_span_builder *psb, char *ip)
     /* control flags not used now */
     if (!pch->flags->val) {
         pch->flags->val = estrdup("0");
-    }
-}
-
-/* add http header */
-void build_http_header(mo_chain_t *pct, zval *header, char *span_id)
-{
-    mo_chain_key_t *pck = NULL;
-    if (Z_TYPE_P(header) == IS_ARRAY) {
-
-        if (pct->pch.is_sampled == 1) {
-
-            char *parent_span_id = pct->pch.span_id->val;
-
-            /* append current header */
-            HashTable *ht = pct->pch.chain_header_key;
-            for(zend_hash_internal_pointer_reset(ht); 
-                    zend_hash_has_more_elements(ht) == SUCCESS;
-                    zend_hash_move_forward(ht)) {
-                
-                if (mo_zend_hash_get_current_data(ht, (void **)&pck) == SUCCESS) {
-                    if (pck->is_pass != 1) {
-                        continue;
-                    }
-
-                    char *pass_value;
-                    int value_size;
-                    char *value;
-                    if (strncmp(pck->name, "span_id", sizeof("span_id") - 1) == 0 && span_id != NULL) {
-                        value = span_id;
-                    } else if (strncmp(pck->name, "parent_span_id", sizeof("parent_span_id") - 1) == 0 && parent_span_id != NULL) {
-                        value = parent_span_id;
-                    }else {
-                        value = pck->val;
-                    }
-                    value_size = strlen(pck->pass_key) + sizeof(": ") - 1 + strlen(value) + 1;
-                    pass_value = emalloc(value_size);
-                    snprintf(pass_value, value_size, "%s: %s", pck->pass_key, value);
-                    pass_value[value_size - 1] = '\0';
-                    mo_add_next_index_string(header, pass_value, 1);
-                    efree(pass_value);
-                }
-            }
-        } else {
-
-            int is_set_flag = 0;
-            HashTable *header_ht = Z_ARRVAL_P(header);
-            zval *tmp_header; 
-
-#if PHP_VERSION_ID < 70000
-            /* check set current x-w-sampled flag or not */
-            for(zend_hash_internal_pointer_reset(header_ht); 
-                    zend_hash_has_more_elements(header_ht) == SUCCESS;
-                    zend_hash_move_forward(header_ht)) {
-                if (mo_zend_hash_get_current_data(header_ht, (void **)&tmp_header) == SUCCESS) {
-                    if (strncmp(Z_STRVAL_P(tmp_header), MOLTEN_HEADER_SAMPLED, sizeof(MOLTEN_HEADER_SAMPLED) - 1) == 0) {
-                        is_set_flag = 1;
-                    }
-                }
-            }
-#else
-            ZEND_HASH_FOREACH_VAL(header_ht, tmp_header) {
-                if (strncmp(Z_STRVAL_P(tmp_header), MOLTEN_HEADER_SAMPLED, sizeof(MOLTEN_HEADER_SAMPLED) - 1) == 0) {
-                    is_set_flag = 1;
-                }
-            } ZEND_HASH_FOREACH_END();
-#endif
-            
-            if (is_set_flag == 0) {
-                mo_add_next_index_string(header, MOLTEN_HEADER_SAMPLED": 0", 1);
-            }
-
-        }
     }
 }
 
@@ -234,7 +169,6 @@ void mo_init_chain_header(mo_chain_header_t *pch)
     span_id->receive_key_len = sizeof(MOLTEN_REC_SPAN_ID);
     span_id->pass_key = MOLTEN_HEADER_SPAN_ID;
     span_id->pass_key_len = sizeof(MOLTEN_HEADER_SPAN_ID) - 1;
-    span_id->is_pass = 1;
     span_id->val = NULL;
     pch->span_id = span_id;
 
@@ -245,7 +179,6 @@ void mo_init_chain_header(mo_chain_header_t *pch)
     parent_span_id->receive_key_len = sizeof(MOLTEN_REC_PARENT_SPAN_ID);
     parent_span_id->pass_key = MOLTEN_HEADER_PARENT_SPAN_ID;
     parent_span_id->pass_key_len = sizeof(MOLTEN_HEADER_PARENT_SPAN_ID) - 1;
-    parent_span_id->is_pass = 1;
     parent_span_id->val = NULL;
     pch->parent_span_id = parent_span_id;
 
@@ -256,7 +189,6 @@ void mo_init_chain_header(mo_chain_header_t *pch)
     sampled->receive_key_len = sizeof(MOLTEN_REC_SAMPLED);
     sampled->pass_key = MOLTEN_HEADER_SAMPLED;
     sampled->pass_key_len = sizeof(MOLTEN_HEADER_SAMPLED) - 1;
-    sampled->is_pass = 1;
     sampled->val = NULL;
     pch->sampled = sampled;
 
@@ -267,7 +199,6 @@ void mo_init_chain_header(mo_chain_header_t *pch)
     flags->receive_key_len = sizeof(MOLTEN_REC_FLAGS);
     flags->pass_key = MOLTEN_HEADER_FLAGS;
     flags->pass_key_len = sizeof(MOLTEN_HEADER_FLAGS) - 1;
-    flags->is_pass = 1;
     flags->val = NULL;
     pch->flags = flags;
 
@@ -287,7 +218,7 @@ void mo_chain_header_dtor(mo_chain_header_t *pch)
 }
 
 /* pt chain ctor */
-void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, char *service_name, char *ip)
+void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, mo_stack *span_stack, char *service_name, char *ip)
 {
     pct->pcl = pcl;
    
@@ -297,6 +228,8 @@ void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, c
 
         /* service name */
         pct->service_name = estrdup(service_name);
+
+        pct->span_stack = span_stack;
 
         /* init error list */
         MO_ALLOC_INIT_ZVAL(pct->error_list);
@@ -328,17 +261,23 @@ void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, c
 }
 
 /* pt chain dtor */
-void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb)
+void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb, mo_stack *span_stack)
 {
     if (pct->pch.is_sampled == 1) {
         pct->execute_end_time = mo_time_usec();
 
         /* add main span */
         zval *span;
+        char *span_id;
+        char *parent_span_id;
+
+        retrieve_span_id(span_stack, &span_id);
+        retrieve_parent_span_id(span_stack, &parent_span_id);
+        
         if (pct->method == NULL) {
-            psb->start_span(&span, (char *)pct->sapi, pct->pch.trace_id->val, pct->pch.span_id->val, pct->pch.parent_span_id->val,  pct->execute_begin_time, pct->execute_end_time, pct, AN_SERVER);
+            psb->start_span(&span, (char *)pct->sapi, pct->pch.trace_id->val, span_id, parent_span_id,  pct->execute_begin_time, pct->execute_end_time, pct, AN_SERVER);
         } else {
-            psb->start_span(&span, (char *)pct->method, pct->pch.trace_id->val, pct->pch.span_id->val, pct->pch.parent_span_id->val,  pct->execute_begin_time, pct->execute_end_time, pct, AN_SERVER);
+            psb->start_span(&span, (char *)pct->method, pct->pch.trace_id->val, span_id, parent_span_id,  pct->execute_begin_time, pct->execute_end_time, pct, AN_SERVER);
         }
 
         /* add request uri */
@@ -413,5 +352,11 @@ void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb)
 
         /* header dtor */
         mo_chain_header_dtor(&(pct->pch));
+
+        /* pop span content */
+        pop_span_context(span_stack);
+
+        /* pop parent span content */
+        pop_span_context(span_stack);
     }
 }
