@@ -183,19 +183,6 @@ void zn_start_span(zval **span, char *trace_id, char *server_name, char *span_id
 }
 /* }}} */
 
-/* {{{ build zipkin span ex */
-void zn_start_span_ex(zval **span, char *server_name, struct mo_chain_st *pct, mo_frame_t *frame)
-{
-    char *span_id;
-    char *parent_span_id;
-
-    retrieve_span_id_4_frame(frame, &span_id);
-    retrieve_parent_span_id_4_frame(frame, &parent_span_id);
-
-    build_main_span(span, pct->pch.trace_id->val, server_name, span_id, parent_span_id, frame->entry_time, frame->exit_time - frame->entry_time);
-}
-/* }}} */
-
 /* {{{ build zipkin service name */
 char *zn_build_service_name(struct mo_chain_st *pct, char *service_name)
 {
