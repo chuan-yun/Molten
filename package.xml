@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<package packagerversion="1.4.11" version="2.0" xmlns="http://pear.php.net/dtd/package-2.0" xmlns:tasks="http://pear.php.net/dtd/tasks-1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://pear.php.net/dtd/tasks-1.0
+http://pear.php.net/dtd/tasks-1.0.xsd
+http://pear.php.net/dtd/package-2.0
+http://pear.php.net/dtd/package-2.0.xsd">
+ <name>Molten</name>
+ <channel>pecl.php.net</channel>
+ <summary>molten is transparency tool for application tracing it self module call</summary>
+ <description>
+     molten is transparency tool for application tracing it self module call.
+
+     It trace php app core call and output zipkin/opentracing format trace log.
+
+     Provides features about muliti trace sapi, multi sampling type, upload tracing status, module control and muliti sink type.
+
+     It very easy to build a distributed systems tracing infrastructure base on php, already run on thousand instance on production env.
+ </description>
+ <lead>
+  <name>Bing Bai</name>
+  <user>silkcut</user>
+  <email>silkcutbeta@gmail.com</email>
+  <active>yes</active>
+ </lead>
+ <date>2017-08-16</date>
+ <version>
+  <release>0.1.0beta</release>
+  <api>0.1.0beta</api>
+ </version>
+ <stability>
+  <release>beta</release>
+  <api>beta</api>
+ </stability>
+ <license uri="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2.0</license>
+ <notes>
+    molten 0.1.0 beta
+    * support pdo/mysqli/memcached/curl/redis/guzzle/es call tracing.
+    * support zipkin format trace log for zipkin server.
+    * get it self running status cross web server.
+    * muliti report format for different env.
+ </notes>
+ <contents>
+  <dir name="/">
+   <file role='doc' name='README.md'/>
+   <file role='doc' name='README_ZH.md'/>
+   <file role='doc' name='CHANGES.md'/>
+   <file role='doc' name='LICENSE'/>
+   <file role='src' name='config.m4'/>
+   <file role='src' name='molten.c'/>
+   <file role='src' name='molten_chain.c'/>
+   <file role='src' name='molten_chain.h'/>
+   <file role='src' name='molten_ctrl.c'/>
+   <file role='src' name='molten_ctrl.h'/>
+   <file role='src' name='molten_intercept.c'/>
+   <file role='src' name='molten_intercept.h'/>
+   <file role='src' name='molten_log.c'/>
+   <file role='src' name='molten_log.h'/>
+   <file role='src' name='molten_report.c'/>
+   <file role='src' name='molten_report.h'/>
+   <file role='src' name='molten_span.c'/>
+   <file role='src' name='molten_span.h'/>
+   <file role='src' name='molten_status.c'/>
+   <file role='src' name='molten_status.h'/>
+   <file role='src' name='molten_struct.h'/>
+   <file role='src' name='molten_util.c'/>
+   <file role='src' name='molten_util.h'/>
+   <file role='src' name='php7_wrapper.h'/>
+   <file role='src' name='php_molten.h'/>
+   <dir name='common'>
+     <file role='src' name='molten_lock.c'/>
+     <file role='src' name='molten_lock.h'/>
+     <file role='src' name='molten_shm.c'/>
+     <file role='src' name='molten_shm.h'/>
+     <file role='src' name='molten_stack.c'/>
+     <file role='src' name='molten_stack.h'/>
+   </dir> <!-- common -->
+   <dir name='tests'>
+     <file role='test' name='bug_001.phpt'/>
+     <file role='test' name='bug_001_ot.phpt'/>
+     <file role='test' name='bug_connect_error_db.phpt'/>
+     <file role='test' name='bug_connect_error_db_7.phpt'/>
+     <file role='test' name='bug_connect_error_db_ot.phpt'/>
+     <file role='test' name='bug_curl_reset.phpt'/>
+     <file role='test' name='bug_dup_header.phpt'/>
+     <file role='test' name='bug_dup_header_ot.phpt'/>
+     <file role='test' name='bug_dup_sampled.phpt'/>
+     <file role='test' name='change_span_id.phpt'/>
+     <file role='test' name='composer.json'/>
+     <file role='test' name='composer.json.5.4'/>
+     <file role='test' name='composer.json.5.5'/>
+     <file role='test' name='config.inc'/>
+     <file role='test' name='curl.inc'/>
+     <file role='test' name='improve_redis_close.phpt'/>
+     <file role='test' name='molten_status.phpt'/>
+     <file role='test' name='mysqli_execute.inc'/>
+     <file role='test' name='pdo_execute.inc'/>
+     <file role='test' name='response.inc'/>
+     <file role='test' name='server.inc'/>
+     <file role='test' name='molten_001.phpt'/>
+     <file role='test' name='molten_002.phpt'/>
+     <file role='test' name='molten_003.phpt'/>
+     <file role='test' name='molten_004.phpt'/>
+     <file role='test' name='molten_005.phpt'/>
+     <file role='test' name='molten_006.phpt'/>
+     <file role='test' name='molten_007.phpt'/>
+     <file role='test' name='molten_008.phpt'/>
+     <file role='test' name='molten_009.phpt'/>
+     <file role='test' name='molten_010.phpt'/>
+     <file role='test' name='molten_011.phpt'/>
+     <file role='test' name='molten_012.phpt'/>
+     <file role='test' name='molten_013.phpt'/>
+     <file role='test' name='molten_014.phpt'/>
+     <file role='test' name='molten_015.phpt'/>
+     <file role='test' name='molten_ot.phpt'/>
+   </dir> <!-- tests -->
+  </dir> <!-- / -->
+ </contents>
+ <dependencies>
+  <required>
+   <php>
+    <min>5.4.0</min>
+    <max>7.2.0</max>
+   </php>
+   <pearinstaller>
+    <min>1.4.0b1</min>
+   </pearinstaller>
+  </required>
+ </dependencies>
+ <providesextension>molten</providesextension>
+ <extsrcrelease/>
+ <changelog>
+   <release>
+       <stability>
+           <release>beta</release>
+           <api>beta</api>
+       </stability>
+       <version>
+           <release>0.1.0beta</release>
+           <api>0.1.0beta</api>
+       </version>
+   <date>2017-08-16</date>
+   <notes>
+    First release to PECL
+   </notes>
+  </release>
+ </changelog>
+</package>
