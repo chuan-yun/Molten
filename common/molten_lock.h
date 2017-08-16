@@ -24,12 +24,13 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 /* fcntl lock path */
 #define FCNTL_LOCK_PATH     "/tmp/.molten.xxxxxx"
 #define LOCK_PATH_SIZE      sizeof(FCNTL_LOCK_PATH)
 
-#define SUCCESS 0
+#define LOCK_SUCCESS 0
 
 /* only support spin lock and rw lock */
 /* spin lock and pthread_rw_lock no need to destroy */

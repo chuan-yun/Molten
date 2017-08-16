@@ -24,7 +24,7 @@ pthread_rwlockattr_t    mo_lock_attr;
 int mo_lock_create(mo_lock_t *lock)
 {
 #ifndef MO_SPIN_LOCK 
-    if (pthread_rwlock_init(lock, &mo_lock_attr) != SUCCESS) {
+    if (pthread_rwlock_init(lock, &mo_lock_attr) != LOCK_SUCCESS) {
         return -1;
     }
 #else
@@ -81,7 +81,7 @@ void mo_lock_wunlock(mo_lock_t *lock)
 int mo_lock_destroy(mo_lock_t *lock)
 {
 #ifndef MO_SPIN_LOCK 
-    if (pthread_rwlock_destroy(lock) != SUCCESS) {
+    if (pthread_rwlock_destroy(lock) != LOCK_SUCCESS) {
         return -1;
     }
 #endif
@@ -93,8 +93,8 @@ int mo_lock_destroy(mo_lock_t *lock)
 int mo_lock_init()
 {
 #ifndef MO_SPIN_LOCK 
-    if (pthread_rwlockattr_init(&mo_lock_attr) == SUCCESS) {
-        if (pthread_rwlockattr_setpshared(&mo_lock_attr, PTHREAD_PROCESS_SHARED) == SUCCESS) {
+    if (pthread_rwlockattr_init(&mo_lock_attr) == LOCK_SUCCESS) {
+        if (pthread_rwlockattr_setpshared(&mo_lock_attr, PTHREAD_PROCESS_SHARED) == LOCK_SUCCESS) {
             return 0;
         }
     }

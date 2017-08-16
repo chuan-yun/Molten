@@ -28,6 +28,7 @@
 
 #include "php.h"
 #include "php7_wrapper.h"
+#include "molten_common.h"
 
 #ifdef USE_ZIPKIN_HEADER
 #define MOLTEN_HEADER_PREFIX "X-B3-"
@@ -56,15 +57,6 @@
 #define MO_FRAME_ENTRY          1
 #define MO_FRAME_EXIT           2
 #define MO_USEC_PER_SEC         1000000l
-
-#ifdef MOLTEN_DEBUG
-#define MOLTEN_ERROR(format, ...) fprintf(stderr, "[MOLTEN] [file:%s] [line:%d]" format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#else
-#define MOLTEN_ERROR(format, ...)
-#endif
-
-#define ZVAL_LONG_PLUS(z)    ZVAL_LONG(z, Z_LVAL_P(z) + 1)
-
 
 static inline long mo_time_sec()
 {
@@ -159,8 +151,9 @@ static inline zend_bool join_ori_url(smart_string *url, zend_bool trim_query_str
 uint64_t rand_uint64(void);
 void b2hex(char **output, const unsigned char *input, int input_len);
 void bin2hex64(char **output, const uint64_t *input);
-void ran64hex(char **output);
+void rand64hex(char **output);
 void build_span_id_random(char **span_id, char *parent_span_id, int span_count);
 void build_span_id_level(char **span_id, char *parent_span_id, int span_count);
+int check_hit_ratio(long base);
 smart_string repr_zval(zval *zv, int limit TSRMLS_DC);
 #endif
