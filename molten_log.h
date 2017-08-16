@@ -50,7 +50,6 @@
 
 #include "php.h"
 #include "Zend/zend_llist.h"
-#include "molten_util.h"
 #include "molten_log.h"
 #include "molten_util.h"
 #include "php7_wrapper.h"

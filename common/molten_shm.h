@@ -26,7 +26,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-#include <molten_lock.h>
+#include "molten_lock.h"
+#include "molten_common.h"
 
 /* max payload one slot */
 #define PAYLOAD_SIZE    1024
@@ -80,4 +81,6 @@ typedef struct {
 } mo_shm_t;
 
 unsigned char *mo_create_slot(mo_shm_t *mst, int slot, unsigned char *data, int size);
+void mo_shm_ctor(mo_shm_t *msm);
+void mo_shm_dtor(mo_shm_t *msm);
 #endif

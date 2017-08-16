@@ -108,5 +108,7 @@ void mo_intercept_dtor(mo_interceptor_t *pit);
 zend_bool mo_intercept_hit(mo_interceptor_t *pit, mo_interceptor_ele_t **ele, char *class_name, char *function_name);
 void add_chain_header(mo_interceptor_t *pit, zval *curl_resource, char *span_id);
 void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, zval *handle, char *method, zend_bool check_error);
+void mo_intercept_uninit(mo_interceptor_t *pit);
+void mo_intercept_init(mo_interceptor_t *pit);
 #endif
 
