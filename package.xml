@@ -21,10 +21,10 @@ http://pear.php.net/dtd/package-2.0.xsd">
   <email>silkcutbeta@gmail.com</email>
   <active>yes</active>
  </lead>
- <date>2017-08-16</date>
+ <date>2017-08-17</date>
  <version>
-  <release>0.1.0beta</release>
-  <api>0.1.0beta</api>
+  <release>0.1.2beta</release>
+  <api>0.1.2beta</api>
  </version>
  <stability>
   <release>beta</release>
@@ -32,11 +32,8 @@ http://pear.php.net/dtd/package-2.0.xsd">
  </stability>
  <license uri="http://www.apache.org/licenses/LICENSE-2.0.html">Apache 2.0</license>
  <notes>
-    molten 0.1.0 beta
-    * support pdo/mysqli/memcached/curl/redis/guzzle/es call tracing.
-    * support zipkin format trace log for zipkin server.
-    * get it self running status cross web server.
-    * muliti report format for different env.
+    molten 0.1.2 beta
+    * remove RTLD_NOW build error.
  </notes>
  <contents>
   <dir name="/">
@@ -72,6 +69,7 @@ http://pear.php.net/dtd/package-2.0.xsd">
      <file role='src' name='molten_shm.h'/>
      <file role='src' name='molten_stack.c'/>
      <file role='src' name='molten_stack.h'/>
+     <file role='src' name='molten_common.h'/>
    </dir> <!-- common -->
    <dir name='tests'>
      <file role='test' name='bug_001.phpt'/>
@@ -129,18 +127,32 @@ http://pear.php.net/dtd/package-2.0.xsd">
  <extsrcrelease/>
  <changelog>
    <release>
-       <stability>
+        <stability>
            <release>beta</release>
            <api>beta</api>
-       </stability>
-       <version>
-           <release>0.1.0beta</release>
-           <api>0.1.0beta</api>
-       </version>
-   <date>2017-08-16</date>
-   <notes>
-    First release to PECL
-   </notes>
+        </stability>
+        <version>
+           <release>0.1.2beta</release>
+           <api>0.1.2beta</api>
+        </version>
+        <date>2017-08-17</date>
+        <notes>
+            Fix RTLD_NOW build error
+        </notes>
+   </release>
+   <release>
+        <stability>
+            <release>beta</release>
+            <api>beta</api>
+        </stability>
+        <version>
+            <release>0.1.0beta</release>
+            <api>0.1.0beta</api>
+        </version>
+        <date>2017-08-16</date>
+        <notes>
+            First release to PECL
+        </notes>
   </release>
  </changelog>
 </package>
