@@ -464,9 +464,7 @@ zend_module_entry molten_module_entry = {
     PHP_RINIT(molten),
     PHP_RSHUTDOWN(molten),
     PHP_MINFO(molten),
-#if ZEND_MODULE_API_NO >= 20010901
-    MOLTEN_EXT_VERSION,
-#endif
+    PHP_MOLTEN_VERSION,
     STANDARD_MODULE_PROPERTIES
 };
 /* }}}} */

@@ -17,6 +17,8 @@
 #ifndef PHP_MOLTEN_H
 #define PHP_MOLTEN_H
 
+#define PHP_MOLTEN_VERSION    "0.1.2beta"
+
 extern zend_module_entry molten_module_entry;
 #define phpext_trace_ptr &molten_module_entry
 
