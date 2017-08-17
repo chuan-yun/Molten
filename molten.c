@@ -97,11 +97,7 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
     PHP_FE(molten_span_format, NULL)
-#ifdef PHP_FE_END
     PHP_FE_END  /* Must be the last line in trace_functions[] */
-#else
-    { NULL, NULL, NULL, 0, 0 }
-#endif
 };
 
 /* {{{ molten_deps */
