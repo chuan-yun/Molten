@@ -52,7 +52,6 @@
 #define MOLTEN_REC_FLAGS MOLTEN_REC_HEADER_PREFIX"FLAGS"
 
 #define SPAN_VERSION            "php-4" 
-#define MOLTEN_EXT_VERSION    "1.0.0"
 
 #define MO_FRAME_ENTRY          1
 #define MO_FRAME_EXIT           2
