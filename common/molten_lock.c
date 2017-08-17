@@ -142,9 +142,10 @@ void mo_fcntl_wunlock(mo_fcntl_lock_t *lock)
 /* {{{ fcntl lock init */
 int mo_fcntl_locK_init(mo_fcntl_lock_t *lock)
 {
-    if (lock->lock_path == NULL) {
+    /* determine lock path is set */
+    if (lock->lock_path[0] == '\0') {
         memcpy(lock->lock_path, FCNTL_LOCK_PATH, LOCK_PATH_SIZE); 
-        mktemp(lock->lock_path);       
+        mkdtemp(lock->lock_path);       
     }
     lock->fd = open(lock->lock_path, O_RDWR|O_CREAT, 0666);
     if (lock->fd > 0) {
