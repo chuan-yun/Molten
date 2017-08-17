@@ -63,7 +63,7 @@ void mo_ctrl_serialize_msg(mo_ctrl_t *mrt, char **buf)
         "molten_request_capture %ld\n"
         "# HELP molten_sampling_type the type of sampling.\n"
         "# TYPE molten_sampling_type gauge\n"
-        "molten_sampling_type %ld\n"
+        "molten_sampling_type %d\n"
         "# HELP molten_sampling_rate the rate of sampling.\n"
         "# TYPE molten_sampling_rate gauge\n"
         "molten_sampling_rate %ld\n"

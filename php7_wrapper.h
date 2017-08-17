@@ -19,6 +19,7 @@
 
 #include "php.h"
 #include "ext/json/php_json.h"
+#include "ext/standard/php_array.h"
 
 
 #if PHP_VERSION_ID < 70000

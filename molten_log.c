@@ -31,7 +31,7 @@ void send_data_by_http(char *post_uri, char *post_data)
     if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
-            CURLcode res;
+            //CURLcode res;
             struct curl_slist *list = NULL;
 
             list = curl_slist_append(list, "Content-Type: application/json");
@@ -40,7 +40,8 @@ void send_data_by_http(char *post_uri, char *post_data)
             curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 100L);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
-            res = curl_easy_perform(curl);
+            //res = curl_easy_perform(curl);
+            curl_easy_perform(curl);
             curl_easy_cleanup(curl);
             curl_slist_free_all(list);
         }
@@ -51,6 +52,7 @@ void send_data_by_http(char *post_uri, char *post_data)
 
 #ifdef HAS_KAFKA
 /* {{{ kafka msg callback */
+/*
 static void dr_msg_cb(rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void *opaque)
 {
     if (rkmessage->err){
@@ -59,9 +61,11 @@ static void dr_msg_cb(rd_kafka_t *rk, const rd_kafka_message_t *rkmessage, void 
         //todo record message
     }
 }
+*/
 /* }}} */
 
 /* {{{ trans log by kafka */
+/*
 static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
 {
     char errstr[512];
@@ -101,14 +105,15 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
     
     rd_kafka_poll(rk, 0);
 
-    rd_kafka_flush(rk, 100 /* wait for max 100 milliseconds */);
+    rd_kafka_flush(rk, 100 );// wait for max 100 milliseconds
 
-    /* Destroy topic object */
+    // Destroy topic object
     rd_kafka_topic_destroy(rkt);
 
-    /* Destroy the producer instance */  
+    // Destroy the producer instance
     rd_kafka_destroy(rk);
 }
+*/
 /* }}} */
 #endif
 
@@ -458,8 +463,6 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
 /* {{{ Flush log */
 void mo_chain_log_flush(mo_chain_log_t *log)
 {
-    char *dname; 
-    ssize_t written_bytes = 0;
     smart_string tmp = {0};
 
     /* Init json encode function */

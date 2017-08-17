@@ -130,6 +130,7 @@ typedef struct {
 } mo_chain_log_t;
 
 /* function */
+void mo_chain_log_init(mo_chain_log_t *log);
 void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
 int mo_chain_log_set_file_path(char *new_path);
 void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size);

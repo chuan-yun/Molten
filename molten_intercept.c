@@ -195,7 +195,6 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
     zval func;
     zval *args[1];
     args[0] = handle;
-    long err = 0;
     char *errstr = NULL;
     zval *url = NULL; 
     zval *http_code = NULL;
@@ -590,7 +589,6 @@ static void memcached_common_call(mo_interceptor_t *pit, mo_frame_t *frame, zval
         zval result_function;
         MO_ZVAL_STRING(&result_function, "getResultMessage", 1);
         if (mo_call_user_function(NULL, &object, &result_function, &result_ret, 0, NULL) == SUCCESS) {
-            zval *error_msg;
             if (MO_Z_TYPE_P(&result_ret) == IS_STRING) {
                 pit->psb->span_add_ba_ex(span, "error", Z_STRVAL(result_ret), frame->exit_time, pit->pct, BA_ERROR);
             } else {
@@ -1268,8 +1266,6 @@ static void guzzle_request_capture(mo_interceptor_t *pit, mo_frame_t *frame)
 /* {{{ guzzle request record */
 static void guzzle_request_record(mo_interceptor_t *pit, mo_frame_t *frame)
 {
-    zval *client = frame->object;    
-
     zval *span = build_com_record(pit, frame, 0);
     
     /* merge span extra */
