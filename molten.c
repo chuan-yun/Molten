@@ -113,7 +113,11 @@ static const zend_module_dep molten_deps[] = {
     ZEND_MOD_OPTIONAL("redis")    
     ZEND_MOD_OPTIONAL("mongodb")    
     ZEND_MOD_OPTIONAL("mysqli")    
+#ifdef HAS_PDO
+    ZEND_MOD_REQUIRED("PDO")
+#else
     ZEND_MOD_OPTIONAL("PDO")    
+#endif
     ZEND_MOD_END
 };
 /* }}} */
