@@ -345,7 +345,6 @@ PHP_FUNCTION(molten_curl_exec)
     /* must sampling will do this */
     if (result == SUCCESS && PTG(pct).pch.is_sampled == 1) {
         uint64_t current_time = mo_time_usec(); 
-        uint64_t duration = current_time - entry_time;
         zval *curl_span;
         char *parent_span_id;
         retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
@@ -381,7 +380,6 @@ PHP_FUNCTION(molten_curl_setopt_array)
 {
     /* before */
     zval *zid, *arr;
-    long        options;
     if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "ra", &zid, &arr) == SUCCESS) {
         HashTable *ht = Z_ARRVAL_P(arr);
         zval *http_header = NULL;
@@ -750,7 +748,6 @@ static void frame_destroy(mo_frame_t *frame)
 /* {{{ Build molten frame */
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC)
 {
-    unsigned int i;
     zval **args;
     zend_function *zf;
 
@@ -852,6 +849,7 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
 #if PHP_VERSION_ID < 70000
     frame->ori_args = args;
 #else
+    int i;
     if (frame->arg_count) {
         i = 0;
         zval *p = ZEND_CALL_ARG(ex, 1);
@@ -1162,18 +1160,6 @@ void molten_error_cb(int type, const char *error_filename, const uint error_line
     }
 
     trace_original_error_cb(type, error_filename, error_lineno, format, args);
-}
-/* }}} */
-
-/* {{{ add http header */
-static char *add_http_header(zval *header, char *key, char *value)
-{
-    int value_size = strlen(key) + sizeof(": ") - 1 + strlen(value) + 1;
-    char *pass_value = emalloc(value_size);
-    snprintf(pass_value, value_size, "%s: %s", key, value);
-    pass_value[value_size - 1] = '\0';
-    mo_add_next_index_string(header, pass_value, 1);
-    efree(pass_value);
 }
 /* }}} */
 

@@ -36,6 +36,9 @@ example/zipkin.jar
 tool
 ctrl
 
+# Tags
+tags
+
 # Extension
 .deps
 .libs

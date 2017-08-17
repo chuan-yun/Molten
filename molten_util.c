@@ -76,7 +76,7 @@ void b2hex(char **output, const unsigned char *input, int input_len)
 /* bin2hex64 */
 void bin2hex64(char **output, const uint64_t *input) 
 {
-    b2hex(output, (char *)input, 8); 
+    b2hex(output, (const unsigned char *)input, 8); 
 }
 
 /* random 64 and change to hex */

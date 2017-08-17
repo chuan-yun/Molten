@@ -69,7 +69,6 @@ void push_span_context(mo_stack *stack)
 /* {{{ push span context with id */
 void push_span_context_with_id(mo_stack *stack, char *span_id)
 {
-    char *tmp_span_id = estrdup(span_id);
 #ifdef USE_LEVEL_ID
     mo_span_context context;
     if (!mo_stack_empty(stack)) {
@@ -80,6 +79,7 @@ void push_span_context_with_id(mo_stack *stack, char *span_id)
     context.span_count = 1;
     mo_stack_push(stack, &context);
 #else
+    char *tmp_span_id = estrdup(span_id);
     mo_stack_push(stack, &tmp_span_id);
 #endif
 }
@@ -386,7 +386,6 @@ void ot_add_log(zval *span, long timestamp, int8_t field_num, ...)
     array_init(fields);
          
     va_list arg_ptr;
-    char *tmp = NULL;
     int i = 0;
     char *key, *val = NULL;
     va_start(arg_ptr, field_num);

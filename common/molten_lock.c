@@ -157,7 +157,7 @@ int mo_fcntl_locK_init(mo_fcntl_lock_t *lock)
 /* }}} */
 
 /* {{{ destry fcntl lock */
-int mo_fcntl_lock_destroy(mo_fcntl_lock_t *lock)
+void mo_fcntl_lock_destroy(mo_fcntl_lock_t *lock)
 {
     close(lock->fd);
 }

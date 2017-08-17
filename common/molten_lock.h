@@ -56,5 +56,5 @@ int mo_lock_init();
 void mo_fcntl_wlock(mo_fcntl_lock_t *lock);
 void mo_fcntl_wunlock(mo_fcntl_lock_t *lock);
 int mo_fcntl_locK_init(mo_fcntl_lock_t *lock);
-int mo_fcntl_lock_destroy(mo_fcntl_lock_t *lock);
+void mo_fcntl_lock_destroy(mo_fcntl_lock_t *lock);
 #endif
