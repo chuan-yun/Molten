@@ -69,10 +69,14 @@ void mo_ctrl_serialize_msg(mo_ctrl_t *mrt, char **buf)
         "molten_sampling_rate %ld\n"
         "# HELP molten_sampling_request the request be capture one min.\n"
         "# TYPE molten_sampling_request gauge\n"
-        "molten_sampling_request %ld\n",                                  \
+        "molten_sampling_request %ld\n"
+        "# HELP molten_version current molten span version.\n"
+        "# TYPE molten_version gauge\n"
+        "molten_version %s\n",                                     \
         mrt->mri->request_all, mrt->mri->request_capture,               \
         mrt->mcm->sampling_type, mrt->mcm->sampling_rate,               \
-        mrt->mcm->sampling_request
+        mrt->mcm->sampling_request,                                     \
+        SPAN_VERSION 
     );
 }
 /* }}} */
