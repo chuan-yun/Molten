@@ -145,9 +145,11 @@ int mo_fcntl_locK_init(mo_fcntl_lock_t *lock)
     /* determine lock path is set */
     if (lock->lock_path[0] == '\0') {
         memcpy(lock->lock_path, FCNTL_LOCK_PATH, LOCK_PATH_SIZE); 
-        mkdtemp(lock->lock_path);       
+        lock->fd = mkstemp(lock->lock_path);       
+    } else {
+        lock->fd = open(lock->lock_path, O_RDWR|O_CREAT, 0666);
     }
-    lock->fd = open(lock->lock_path, O_RDWR|O_CREAT, 0666);
+
     if (lock->fd > 0) {
         unlink(lock->lock_path); 
         return 0;

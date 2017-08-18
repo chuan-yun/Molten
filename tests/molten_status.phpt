@@ -60,6 +60,9 @@ molten_sampling_rate %d
 # HELP molten_sampling_request the request be capture one min.
 # TYPE molten_sampling_request gauge
 molten_sampling_request %d
+# HELP molten_version current molten span version.
+# TYPE molten_version gauge
+molten_version %s
 
 # HELP molten_request_all Number of all request.
 # TYPE molten_request_all counter
@@ -76,3 +79,6 @@ molten_sampling_rate %d
 # HELP molten_sampling_request the request be capture one min.
 # TYPE molten_sampling_request gauge
 molten_sampling_request 4443
+# HELP molten_version current molten span version.
+# TYPE molten_version gauge
+molten_version %s
