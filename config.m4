@@ -49,30 +49,6 @@ if test "$PHP_PRACING" != "no"; then
     AC_MSG_RESULT([has found php json include file])
   fi
    
-  dnl check for mysqli
-  AC_MSG_CHECKING([check for mysqli])
-  mysqli_inc_path=""
-  if test -f "$abs_srcdir/include/php/ext/mysqli/php_mysqli_structs.h"; then
-    mysqli_inc_path="$abs_srcdir/include/php"
-  elif test -f "$abs_srcdir/ext/mysqli/php_mysqli_structs.h"; then
-    mysqli_inc_path="$abs_srcdir"
-  elif test -f "$phpincludedir/ext/mysqli/php_mysqli_structs.h"; then
-    mysqli_inc_path="$phpincludedir"
-  else
-    for i in php php4 php5 php6 php7; do
-      if test -f "$prefix/include/$i/ext/mysqli/php_mysqli_structs.h"; then
-        mysqli_inc_path="$prefix/include/$i"
-      fi
-    done
-  fi
-
-  if test "mysqli_inc_path" = ""; then
-      AC_MSG_RESULT([mysqli not found, mysqli support will not complete])
-  else
-      AC_MSG_RESULT([hash found mysqli include file])
-      AC_DEFINE(HAS_MYSQLI, 1, [we have mysqli])
-  fi
-
   dnl check for mysqlnd
   AC_MSG_CHECKING([check for mysqlnd])
   mysqlnd_inc_path=""
@@ -93,8 +69,25 @@ if test "$PHP_PRACING" != "no"; then
   if test "$mysqlnd_inc_path" = ""; then
       AC_MSG_RESULT([mysqlnd not found, mysqli support will not complete])
   else
-      AC_MSG_RESULT([has found mysqlnd include file])
-      AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
+      dnl check for mysqli use mysqlnd or not
+      build_options=`$prefix/bin/php-config --configure-options`
+      has_mysqlnd="0"
+
+      if echo "$build_options" | grep " \-\-with\-mysqli "; then
+          has_mysqlnd="1"
+      fi
+
+      if echo "$build_options" | grep " \-\-with\-mysqli=mysqlnd "; then
+          has_mysqlnd="1"
+      fi
+
+      if test "$has_mysqlnd" = "1"; then
+        AC_MSG_RESULT([has found mysqlnd include file])
+        AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
+        AC_DEFINE(MYSQLI_USE_MYSQLND, 1, [we define MYSQLI_USER_MYSQLND use mysqlnd to support mysqli])
+      else
+        AC_MSG_RESULT([mysqlnd not found, mysqli support will not complete])
+      fi
   fi
 
   dnl check for pdo
