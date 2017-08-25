@@ -331,7 +331,7 @@ static void generate_log_path(mo_chain_log_t *log)
     if (time_info->tm_yday != log->tm_yday) {
         memset(log->real_path, 0x00, sizeof(log->real_path));
         strftime(time_format, 32, log->format, time_info);
-        sprintf(log->real_path, "%s-%s.log", log->path, time_format);
+        sprintf(log->real_path, "%s%s-%s.log", log->path, DEFAULT_PREFIX, time_format);
         log->tm_yday = time_info->tm_yday;
         if (log->fd != -1) {
             CLOSE_LOG_FD;
