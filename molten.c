@@ -478,7 +478,7 @@ ZEND_GET_MODULE(molten)
 /* PHP_INI */
 PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_SYSTEM, OnUpdateBool, enable, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_log_path",        DEFAULT_PATH,   PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_log_path",       DEFAULT_LOG_DIR,   PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_SYSTEM, OnUpdateString, service_name, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)

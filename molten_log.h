@@ -60,7 +60,7 @@
 
 #define ALLOC_LOG_SIZE  1024
 #define DEFAULT_LOG_DIR "/var/wd/log/tracing/php/"
-#define DEFAULT_PATH    DEFAULT_LOG_DIR"tracing"
+#define DEFAULT_PREFIX  "tracing"
 #define LOG_FORMAT      "%Y%m%d" 
 
 #define SINK_NONE       0
