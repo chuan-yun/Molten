@@ -14,10 +14,10 @@ if [ -z "$docker" ]; then
     export STORAGE_TYPE=mem
     export HTTP_COLLECTOR_ENABLE=true
     
-    zipkin=`ps aux|grep zipkin|grep -v grep`
+    zipkin=`ps aux|grep zipkin.jar|grep -v grep`
     
     if [ -z "$zipkin" ]; then
-    java -jar zipkin.jar --logging.level.zipkin=DEBUG 2>&1 >/dev/null &
+        java -jar zipkin.jar --logging.level.zipkin=DEBUG 2>&1 >/dev/null &
     sleep 10
     fi
 else
