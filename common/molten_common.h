@@ -17,6 +17,8 @@
 #ifndef MOLTEN_COMMON_H
 #define MOLTEN_COMMON_H
 
+#include <stdio.h>
+
 #ifdef MOLTEN_DEBUG
 #define MOLTEN_ERROR(format, ...) fprintf(stderr, "[MOLTEN] [file:%s] [line:%d]" format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #else

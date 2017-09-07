@@ -53,6 +53,7 @@
 #include "molten_log.h"
 #include "molten_util.h"
 #include "php7_wrapper.h"
+#include "molten_slog.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096 

@@ -28,6 +28,7 @@
 #include "molten_chain.h"
 #include "molten_log.h"
 #include "molten_util.h"
+#include "molten_slog.h"
 #include "php7_wrapper.h"
 
 /* Check sapi name */
@@ -518,6 +519,9 @@ PHP_MINIT_FUNCTION(molten)
     }
 
     CHECK_SAPI_NAME;
+    
+    /* slog */
+    SLOG_INIT(SLOG_STDOUT, "/tmp/molten.log");
 
     /* Replace executor */
 #if PHP_VERSION_ID < 50500
@@ -548,6 +552,8 @@ PHP_MINIT_FUNCTION(molten)
         PTG(pct).is_cli = 0;
     }
 
+    SLOG(SLOG_INFO, "molten start");
+
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
     mo_shm_ctor(&PTG(msm));   
@@ -572,6 +578,7 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     
     CHECK_SAPI_NAME;
 
+
     /* Restore original executor */
 #if PHP_VERSION_ID < 50500
     zend_execute = ori_execute;
@@ -592,6 +599,11 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     mo_intercept_dtor(&PTG(pit));
     mo_rep_dtor(&PTG(pre));
 
+    SLOG(SLOG_INFO, "molten module shutdown");
+
+    /* slog */
+    SLOG_DESTROY();
+
     return SUCCESS;
 }
 /* }}} */
@@ -610,6 +622,8 @@ PHP_RINIT_FUNCTION(molten)
     if (!PTG(enable_sapi)) {
         return SUCCESS;
     }
+
+    SLOG(SLOG_INFO, "molten request init");
 
     /* Set in request life time */
     PTG(in_request) = 1;
@@ -652,6 +666,8 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     if (!PTG(enable_sapi)) {
         return SUCCESS;
     }
+
+    SLOG(SLOG_INFO, "molten request shutdown");
 
     /* all actions are the reverse of RINIT */
     /* dtor tracing basic info */

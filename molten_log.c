@@ -31,7 +31,7 @@ void send_data_by_http(char *post_uri, char *post_data)
     if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
-            //CURLcode res;
+            CURLcode res;
             struct curl_slist *list = NULL;
 
             list = curl_slist_append(list, "Content-Type: application/json");
@@ -40,8 +40,9 @@ void send_data_by_http(char *post_uri, char *post_data)
             curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 100L);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
-            //res = curl_easy_perform(curl);
-            curl_easy_perform(curl);
+            res = curl_easy_perform(curl);
+            //curl_easy_perform(curl);
+            SLOG(SLOG_INFO, " curl request code:%d", res);
             curl_easy_cleanup(curl);
             curl_slist_free_all(list);
         }
@@ -131,7 +132,7 @@ static void syslog_sink_init(mo_chain_log_t *log)
 
         log->sfd = socket(AF_UNIX, SOCK_DGRAM, 0);
         if (log->sfd == -1) {
-            MOLTEN_ERROR(" init syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
+            SLOG(SLOG_ERROR, " init syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
             return;
         }
 
@@ -139,7 +140,7 @@ static void syslog_sink_init(mo_chain_log_t *log)
         client.sun_family = AF_UNIX;
         strncpy(client.sun_path, log->unix_socket, sizeof(client.sun_path) - 1);
         if (bind(log->sfd, (struct sockaddr *)&client, sizeof(struct sockaddr_un)) == -1) {
-            MOLTEN_ERROR(" bind syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
+            SLOG(SLOG_ERROR, " bind syslog fd error: [%d] errstr[%s]", errno, strerror(errno));
             return;
         }
 }
@@ -230,6 +231,7 @@ void mo_chain_add_span(mo_chain_log_t *log, zval *span)
     /* Only for sampling record */
     /* can del after */
     if (log == NULL || log->spans == NULL) {
+        SLOG(SLOG_ERROR, "[add span] log span is null");
         return;
     }
     add_next_index_zval(log->spans, span);
@@ -346,7 +348,7 @@ static void inline flush_log_to_fd(mo_chain_log_t *log, char *bytes, int size)
     int written_bytes = 0;
     do {
         if ((written_bytes = write(log->fd, bytes, size) )== -1) {
-            MOLTEN_ERROR("write log error[%d] errstr[%s]", errno, strerror(errno));
+            SLOG(SLOG_ERROR, "write log error[%d] errstr[%s]", errno, strerror(errno));
             return;
         }
         written_bytes += written_bytes;
@@ -377,12 +379,12 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
     t = time(NULL);
     tmp = localtime(&t);
     if (tmp == NULL) {
-        MOLTEN_ERROR("[sink] get local time error");
+        SLOG(SLOG_ERROR, "[sink][syslog] get local time error");
         return;
     }
     
     if (strftime(str_time, sizeof(str_time), "%b %d %H:%M:%S", tmp) == 0) {
-        MOLTEN_ERROR("[sink] format strftime error");
+        SLOG(SLOG_ERROR, "[sink][syslog] format strftime error");
         return;
     }
 
@@ -408,7 +410,7 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
     msg.msg_flags = 0;
 
     if (sendmsg(log->sfd, &msg, 0) != send_len) {
-        MOLTEN_ERROR("[sink] send msg error:[%d]", errno);
+        SLOG(SLOG_ERROR, "[sink][syslog] send msg error:[%d]", errno);
     }
 }
 /* }}} */
@@ -424,7 +426,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
         case SINK_LOG:
 
             if (mo_mkdir_recursive(log->path) == -1) {
-                MOLTEN_ERROR("recursive make dir error [%s]", log->path);
+                SLOG(SLOG_ERROR, "[sink][file] recursive make dir error [%s]", log->path);
                 return;
             }
 
@@ -433,7 +435,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
             if (log->fd == -1) {
                 log->fd = open(log->real_path, O_WRONLY|O_CREAT|O_APPEND, 0666);
                 if (log->fd == -1) {
-                    MOLTEN_ERROR("Open log error[%d] errstr[%s]", errno, strerror(errno));
+                    SLOG(SLOG_ERROR, "[sink][file] open log error[%d] errstr[%s]", errno, strerror(errno));
                     return;
                 }
                 struct stat sb;
@@ -455,6 +457,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
 #ifdef HAS_KAFKA
 #endif
         default:
+            SLOG(SLOG_ERROR, "[sink] input error type [%d]", log->sink_type);
             break;
     }
 }
