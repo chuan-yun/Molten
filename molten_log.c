@@ -28,7 +28,7 @@ static void generate_log_path(mo_chain_log_t *log);
 /* {{{ trans log by http , current use curl not php_stream */
 void send_data_by_http(char *post_uri, char *post_data)
 {
-    SLOG(SLOG_INFO, "[sink][http] http data sender, post_uri:%d", post_uri);
+    SLOG(SLOG_INFO, "[sink][http] http data sender, post_uri:%s", post_uri);
     if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
@@ -426,6 +426,7 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
 /* {{{ pt write info to log */
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size) 
 {
+    SLOG(SLOG_INFO, "[sink] mo log write sink_type [%d]", log->sink_type);
     switch (log->sink_type) {
         case SINK_STD:
             log->fd = 1;
@@ -474,6 +475,7 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
 /* {{{ Flush log */
 void mo_chain_log_flush(mo_chain_log_t *log)
 {
+    SLOG(SLOG_INFO, "[sink] mo log flush ");
     smart_string tmp = {0};
 
     /* Init json encode function */
@@ -521,7 +523,8 @@ void mo_chain_log_flush(mo_chain_log_t *log)
             goto end;
         }
     }
-    
+     
+    SLOG(SLOG_INFO, "[sink] mo log flush detail size:%d", log->alloc_size);
     mo_log_write(log, log->buf, log->alloc_size);
     
 end:
