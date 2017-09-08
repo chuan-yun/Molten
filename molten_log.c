@@ -28,6 +28,7 @@ static void generate_log_path(mo_chain_log_t *log);
 /* {{{ trans log by http , current use curl not php_stream */
 void send_data_by_http(char *post_uri, char *post_data)
 {
+    SLOG(SLOG_INFO, "[sink][http] http data sender, post_uri:%d", post_uri);
     if (post_uri != NULL && strlen(post_uri) > 5) {
         CURL *curl = curl_easy_init();
         if (curl) {
@@ -45,6 +46,8 @@ void send_data_by_http(char *post_uri, char *post_data)
             SLOG(SLOG_INFO, " curl request code:%d", res);
             curl_easy_cleanup(curl);
             curl_slist_free_all(list);
+        } else {
+            SLOG(SLOG_INFO, "[sink][http] init curl error");
         }
     }
 }
@@ -121,6 +124,7 @@ static void trans_log_by_kafka(mo_chain_log_t *log, char *post_data)
 /* {{{ init syslog unix domain udp sink */
 static void syslog_sink_init(mo_chain_log_t *log)
 {
+        SLOG(SLOG_INFO, "[sink][syslog] syslog data sender");
         if (log->unix_socket == NULL) {
             return;
         }
@@ -171,7 +175,7 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     log->alloc_size = 0;
     
     /* set support type */
-    log->support_type = SINK_LOG | SINK_STD;
+    log->support_type = SINK_LOG | SINK_STD | SINK_SYSLOG;
 #ifdef HAS_CURL
     log->support_type |= SINK_HTTP;
 #endif
@@ -193,12 +197,16 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     if (log->sink_type == SINK_SYSLOG) {
         syslog_sink_init(log);
     }
+
+    SLOG(SLOG_INFO, "[sink] current select sink_type:%d, input type%d", log->sink_type, sink_type);
 }
 /* }}} */
 
 /* {{{ Log module dtor */
 void mo_chain_log_dtor(mo_chain_log_t *log)
 {
+
+    SLOG(SLOG_INFO, "[sink] log module dtor");
     pefree(log->buf, 1);
 
     /* log fd close */
