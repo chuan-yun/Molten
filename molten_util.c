@@ -45,7 +45,7 @@ uint64_t rand_uint64(void)
 }
 
 /* check is hit or not */
-int check_hit_ratio(long base)
+int check_hit_ratio(int base)
 {
     struct timeval tv;
     int seed = gettimeofday(&tv, NULL) == 0 ? tv.tv_usec * getpid() : getpid();

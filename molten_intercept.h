@@ -44,7 +44,7 @@
 #include "molten_log.h"
 #include "molten_util.h"
 #include "molten_chain.h"
-
+#include "molten_report.h"
 
 #define HEADER_INTERNAL_CALL        1
 #define HEADER_OUT_CALL             0
@@ -82,7 +82,8 @@ typedef struct {
    
     /* relation struct */
     struct mo_chain_st *pct;
-    mo_span_builder    *psb; 
+    mo_span_builder    *psb;
+    mo_chain_log_t     *pcl;
 }mo_interceptor_t;
 
 
@@ -103,7 +104,7 @@ typedef struct {
 }mo_interceptor_ele_t;
 
 /* function */
-void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_builder *psb);
+void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_builder *psb, mo_chain_log_t *pcl);
 void mo_intercept_dtor(mo_interceptor_t *pit);
 zend_bool mo_intercept_hit(mo_interceptor_t *pit, mo_interceptor_ele_t **ele, char *class_name, char *function_name);
 void add_chain_header(mo_interceptor_t *pit, zval *curl_resource, char *span_id);
