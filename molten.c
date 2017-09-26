@@ -779,8 +779,10 @@ static PHP_METHOD(molten, addSpans)
     {
         return;
     }
-    Z_TRY_ADDREF_P(span);
-    mo_chain_add_span1(&PTG(pcl), span);
+    if (PTG(pct).pch.is_sampled == 1) {
+        Z_TRY_ADDREF_P(span);
+        mo_chain_add_span1(&PTG(pcl), span);
+    }
     RETURN_TRUE;
 }
 
@@ -803,15 +805,18 @@ static PHP_METHOD(molten, getTraceHeader)
     {
         return;
     }
-    push_span_context(&PTG(span_stack));
-    uint64_t start_time = mo_time_usec();
-    retrieve_span_id(&PTG(span_stack), &span_id);
-    retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+    if (PTG(pct).pch.is_sampled == 1) {
+        push_span_context(&PTG(span_stack));
+        uint64_t start_time = mo_time_usec();
+        retrieve_span_id(&PTG(span_stack), &span_id);
+        retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
 
-    PTG(psb).start_span(&span, service_name, PTG(pct).pch.trace_id->val, span_id, parent_span_id, start_time, 0, &PTG(pct), AN_CLIENT);
-    pop_span_context(&PTG(span_stack));
-    Z_TRY_ADDREF_P(span);
-    RETURN_ZVAL(span, 0, 0);
+        PTG(psb).start_span(&span, service_name, PTG(pct).pch.trace_id->val, span_id, parent_span_id, start_time, 0, &PTG(pct), AN_CLIENT);
+        pop_span_context(&PTG(span_stack));
+        RETURN_ZVAL(span, 0, 0);
+    } else {
+        RETURN_BOOL(0);
+    }
 }
 
 /* {{{ Obtain zend function */
