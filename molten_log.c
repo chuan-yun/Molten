@@ -255,7 +255,6 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host, int port, char *host_nam
     if (log->sink_type == SINK_SYSLOG) {
         syslog_sink_init(log);
     }
-    zend_llist_init(&log->error_list, sizeof(mo_chain_error_t), mo_chain_error_dtor, 1);
 }
 /* }}} */
 
@@ -278,39 +277,12 @@ void mo_chain_log_dtor(mo_chain_log_t *log)
     if (log->sink_type == SINK_SOCKET) {
         socket_sink_shutdown(log);
     }
-    /*
-     * destroy chain log error_list
-     */
-    zend_llist_destroy(&log->error_list);
-}
-/* }}} */
-
-/* {{{ pt error struct dtor */
-void mo_chain_error_dtor(void *data)
-{
-	mo_chain_error_t *e = (mo_chain_error_t *)data;
-    pefree(e->key, 1);
-    pefree(e->error, 1);
-}
-/* }}} */
-
-/* {{{ add log error */
-void mo_chain_add_error(mo_chain_log_t *log, smart_string *key, char *error_str, long usec)
-{
-    if (key != NULL) {
-    	mo_chain_error_t e = {0};
-        e.key = pestrdup(smart_string_str((*key)), 1);
-        e.error = pestrdup(error_str, 1);
-        e.timestamp = usec;
-        zend_llist_add_element(&log->error_list, &e);
-    }
 }
 /* }}} */
 
 /* {{{ Every init buffer */
-void mo_chain_log_init(mo_chain_log_t *log, int log_rate)
+void mo_chain_log_init(mo_chain_log_t *log)
 {
-	log->log_rate = log_rate;
     memset(log->buf, 0x00, log->total_size);
     log->alloc_size = 0; 
     MO_ALLOC_INIT_ZVAL(log->spans);
@@ -660,23 +632,7 @@ void mo_chain_log_flush(mo_chain_log_t *log)
             goto end;
         }
     }
-    //has error need to log or check hit
-    if (zend_llist_count(&log->error_list) > 0) {
-        mo_log_write(log, log->buf, log->alloc_size);
-//        smart_string send = {0};
-//        format_llist_to_array(&send, &log->error_list);
-//        smart_string_free(&send);
-    } else {
-        long current_time = mo_time_usec();
-        if (current_time - log->execute_begin_time >= log->log_usec_limit) {
-            mo_log_write(log, log->buf, log->alloc_size);
-        } else  {
-            int res = check_hit_ratio(log->log_rate);
-            if (res) {
-                mo_log_write(log, log->buf, log->alloc_size);
-            }
-        }
-    }
+    mo_log_write(log, log->buf, log->alloc_size);
 end:
     mo_zval_dtor(&func);
     mo_zval_ptr_dtor(&log->spans);

@@ -138,10 +138,6 @@ typedef struct {
     uint64_t total_size;
     uint64_t alloc_size;
     zval *spans;
-    zend_llist      error_list;                 /* span error */
-    int    log_rate; 				/* log rate*/
-    long                    execute_begin_time;     /* execute begin time */
-    long                    log_usec_limit;
 } mo_chain_log_t;
 
 typedef struct {
@@ -152,7 +148,7 @@ typedef struct {
 
 
 /* function */
-void mo_chain_log_init(mo_chain_log_t *log, int log_rate);
+void mo_chain_log_init(mo_chain_log_t *log);
 void mo_chain_log_ctor(mo_chain_log_t *log, char *host, int port, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
 int mo_chain_log_set_file_path(char *new_path);
 void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size);
@@ -160,8 +156,6 @@ void mo_chain_log_flush(mo_chain_log_t *log);
 void mo_chain_log_dtor(mo_chain_log_t *log);
 void mo_chain_add_span(mo_chain_log_t *log, zval *span);
 void mo_chain_log_dtor(mo_chain_log_t *log);
-void mo_chain_add_error(mo_chain_log_t *log, smart_string *key, char *error_str, long usec);
-void mo_chain_error_dtor(void *data);
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size);
 
 #ifdef HAS_CURL

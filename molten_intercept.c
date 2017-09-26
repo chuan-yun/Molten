@@ -235,11 +235,7 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
         result = mo_call_user_function(EG(function_table), (zval **)NULL, &func, &ret, 1, args);
         if (result == SUCCESS) {
             if (Z_TYPE(ret) == IS_STRING && Z_STRLEN(ret) > 0) {
-                errstr = estrdup(Z_STRVAL(ret)); 
-                smart_string s = {0};
-                smart_string_appendl(&s, Z_STRVAL_P(url), Z_STRLEN_P(url));
-                mo_chain_add_error(pit->pcl, &s, errstr, timestamp);
-                smart_string_free(&s);
+                errstr = estrdup(Z_STRVAL(ret));
             } else {
                 errstr = NULL;
             }
@@ -1397,7 +1393,7 @@ static int extension_loaded(char *extension_name)
 }while(0)
 
 /* {{{ mo intercept ctor */
-void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_builder *psb, mo_chain_log_t *pcl)
+void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_builder *psb)
 {
     /* init global vars */
     pit->elements = (HashTable *)pemalloc(sizeof(HashTable), 1);
@@ -1408,7 +1404,6 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     mo_zend_get_constant("CURLOPT_HTTPHEADER", sizeof("CURLOPT_HTTPHEADER") - 1, &pit->curl_http_header_const);
     pit->pct = pct;
     pit->psb = psb;
-    pit->pcl = pcl;
 
     if (extension_loaded("PDO")) {
         ADD_INTERCEPTOR_TAG(pit, PDO);
