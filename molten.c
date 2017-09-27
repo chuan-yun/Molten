@@ -50,7 +50,6 @@ static PHP_METHOD(molten, __construct);
 static PHP_METHOD(molten, __destruct);
 static PHP_METHOD(molten, set);
 static PHP_METHOD(molten, addSpans);
-static PHP_METHOD(molten, getTraceId);
 static PHP_METHOD(molten, getTraceHeader);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
@@ -124,7 +123,6 @@ static zend_function_entry molten_methods[] = {
     PHP_ME(molten, __destruct, arginfo_void, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
     PHP_ME(molten, set,        arginfo_molten_set, ZEND_ACC_PUBLIC)
     PHP_ME(molten, addSpans,  arginfo_molten_add_spans, ZEND_ACC_PUBLIC)
-    PHP_ME(molten, getTraceId,   arginfo_void, ZEND_ACC_PUBLIC)
     PHP_ME(molten, getTraceHeader,arginfo_molten_header, ZEND_ACC_PUBLIC)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
@@ -780,18 +778,11 @@ static PHP_METHOD(molten, addSpans)
         return;
     }
     if (PTG(pct).pch.is_sampled == 1) {
-        Z_TRY_ADDREF_P(span);
+        mo_zval_add_ref(&span);
         mo_chain_add_span1(&PTG(pcl), span);
     }
     RETURN_TRUE;
 }
-
-static PHP_METHOD(molten, getTraceId)
-{
-    char *trace_id = PTG(pct).pch.trace_id->val;
-    RETURN_STRING(trace_id);
-}
-
 
 static PHP_METHOD(molten, getTraceHeader)
 {
