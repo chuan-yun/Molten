@@ -151,8 +151,69 @@ static void syslog_sink_shutdown(mo_chain_log_t *log) {
 }
 /* }}} */
 
+static int socket_connect(mo_chain_log_t *log)
+{
+    if (log->timeout > 0) {
+        double timeout = log->timeout;
+        int res;
+        struct timeval timeo;
+        timeo.tv_sec = (int) timeout;
+        timeo.tv_usec = (int) ((timeout - timeo.tv_sec) * 1000 * 1000);
+        setsockopt(log->socket, SOL_SOCKET, SO_SNDTIMEO, (void *) &timeo, sizeof(timeo));
+        setsockopt(log->socket, SOL_SOCKET, SO_RCVTIMEO, (void *) &timeo, sizeof(timeo));
+    }
+    int ret;
+    while (1)
+    {
+       ret = connect(log->socket, (struct sockaddr *) &log->inet_v4, log->socklen);
+       if (ret < 0)
+       {
+           if (errno == EINTR)
+           {
+               continue;
+           }
+       }
+       break;
+    }
+    if (ret >= 0) {
+       log->socket_active = 1;
+    }
+    return ret;
+}
+
+/* {{{ init socket sink */
+static int socket_sink_init(mo_chain_log_t *log)
+{
+    //已经创建
+    if (log->socket) {
+        return 1;
+    }
+    if (log->host == NULL) {
+        return 1;
+    }
+    log->inet_v4.sin_family = AF_INET;
+    log->inet_v4.sin_port = htons(log->port);
+    log->socklen = sizeof(log->inet_v4);
+    void *s_addr = NULL;
+    s_addr = &log->inet_v4.sin_addr.s_addr;
+    inet_pton(AF_INET, log->host, s_addr);
+#ifdef SOCK_CLOEXEC
+    log->socket = socket(AF_INET,SOCK_STREAM | SOCK_CLOEXEC,0);
+#else
+    log->socket = socket(AF_INET,SOCK_STREAM,0);
+#endif
+    return 0;
+}
+/* }}} */
+
+/* {{{ socket shutdown */
+static void socket_sink_shutdown(mo_chain_log_t *log) {
+    if (log->socket > 0) close(log->socket);
+}
+/* }}} */
+
 /* {{{ Log module ctor */
-void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket)
+void mo_chain_log_ctor(mo_chain_log_t *log, char *host, int port, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket)
 {
     log->path = log_path;
     log->tm_yday = -1;
@@ -168,6 +229,9 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     log->buf = pemalloc(ALLOC_LOG_SIZE, 1);
     log->total_size = ALLOC_LOG_SIZE;
     log->alloc_size = 0;
+    log->host = host;
+    log->port = port;
+    log->timeout = 0.5;
     
     /* set support type */
     log->support_type = SINK_LOG | SINK_STD;
@@ -183,7 +247,6 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     if (!(sink_type & log->support_type)) {
         log->sink_type = SINK_NONE;
     }
-    
     /* todo for func cb, current use if else */
     if (log->sink_type == SINK_LOG) {
         generate_log_path(log);
@@ -206,10 +269,13 @@ void mo_chain_log_dtor(mo_chain_log_t *log)
             CLOSE_LOG_FD;
         }
     }
-
     /* unix fd close */
     if (log->sink_type == SINK_SYSLOG) {
         syslog_sink_shutdown(log);
+    }
+    /* socket fd close */
+    if (log->sink_type == SINK_SOCKET) {
+        socket_sink_shutdown(log);
     }
 }
 /* }}} */
@@ -221,6 +287,9 @@ void mo_chain_log_init(mo_chain_log_t *log)
     log->alloc_size = 0; 
     MO_ALLOC_INIT_ZVAL(log->spans);
     array_init(log->spans);
+    if (log->sink_type == SINK_SOCKET) {
+        socket_sink_init(log);
+    }
 }
 /* }}} */
 
@@ -234,6 +303,16 @@ void mo_chain_add_span(mo_chain_log_t *log, zval *span)
     }
     add_next_index_zval(log->spans, span);
     MO_FREE_ALLOC_ZVAL(span);
+}
+/* }}} */
+
+/* {{{ Add stack span to chain */
+void mo_chain_add_span1(mo_chain_log_t *log, zval *span)
+{
+    if (log == NULL || log->spans == NULL) {
+        return;
+    }
+    add_next_index_zval(log->spans, span);
 }
 /* }}} */
 
@@ -413,6 +492,46 @@ static void inline flush_log_to_syslog(mo_chain_log_t *log, char *bytes, int siz
 }
 /* }}} */
 
+/* {{{ flush log to socket */
+static void inline flush_log_to_socket(mo_chain_log_t *log, char *bytes, int length)
+{
+    assert(length > 0);
+    assert(bytes != NULL);
+
+    //connect failed try to connect
+    if (log->socket_active == 0) {
+        socket_connect(log);
+    }
+    if (log->socket_active > 0) {
+        char *buff = NULL;
+        char *root = NULL;
+        buff = emalloc(length + 4);
+        root = buff;
+        int num = htonl(length);
+        memcpy(buff,&num,4);
+        memcpy(buff+4,bytes,length);
+        int len = length+4;
+        int written = 0;
+        int n;
+
+        while (written < len)
+        {
+            n = send(log->socket, buff, len - written, 0);
+            if (n < 0)
+            {
+                if (errno == EINTR)
+                {
+                    continue;
+                }
+            }
+            written += n;
+            buff += n;
+        }
+        efree(root);
+    }
+}
+/* }}} */
+
 /* {{{ pt write info to log */
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size) 
 {
@@ -446,6 +565,9 @@ void mo_log_write(mo_chain_log_t *log, char *bytes, int size)
         case SINK_SYSLOG:
             flush_log_to_syslog(log, bytes, size);
             break;
+        case SINK_SOCKET:
+            flush_log_to_socket(log, bytes, size);
+            break;
 #ifdef HAS_CURL
         case SINK_HTTP:
             send_data_by_http(log->post_uri, bytes);
@@ -468,7 +590,7 @@ void mo_chain_log_flush(mo_chain_log_t *log)
     /* Init json encode function */
     zval func;
     MO_ZVAL_STRING(&func, "json_encode", 1);
-    
+
     if (log->output_type == SPANS_BREAK) {
         /* Encode one span one line , easy for debug */
         HashTable *ht = Z_ARRVAL_P(log->spans);
@@ -510,9 +632,7 @@ void mo_chain_log_flush(mo_chain_log_t *log)
             goto end;
         }
     }
-    
     mo_log_write(log, log->buf, log->alloc_size);
-    
 end:
     mo_zval_dtor(&func);
     mo_zval_ptr_dtor(&log->spans);

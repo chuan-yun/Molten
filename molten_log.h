@@ -28,7 +28,10 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <sys/types.h>
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <sys/un.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -50,7 +53,6 @@
 
 #include "php.h"
 #include "Zend/zend_llist.h"
-#include "molten_log.h"
 #include "molten_util.h"
 #include "php7_wrapper.h"
 
@@ -75,7 +77,7 @@
 #ifdef HAS_KAFKA 
 #define SINK_KAFKA      5
 #endif
-
+#define SINK_SOCKET     6       /* only for ipv */
 #define SPANS_WRAP      1<<0
 #define SPANS_BREAK     1<<1
 
@@ -116,6 +118,15 @@ typedef struct {
     int sfd;                    /* unix domain syslog fd */
     struct sockaddr_un server;  /* server addr */
 
+    /* socket tcp */
+    char *host;
+    int port;
+    struct sockaddr_in inet_v4;
+    socklen_t socklen; //socket len
+    int socket;   //fd
+    int socket_active;
+    double timeout;
+
     /* sink http */
     char *post_uri;             /* post uri */
 
@@ -129,15 +140,24 @@ typedef struct {
     zval *spans;
 } mo_chain_log_t;
 
+typedef struct {
+    char *key;                  /* error key */
+    char *error;                /* error message (truncate) */
+    long timestamp;             /* error occour timestamp */
+} mo_chain_error_t;
+
+
 /* function */
 void mo_chain_log_init(mo_chain_log_t *log);
-void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
+void mo_chain_log_ctor(mo_chain_log_t *log, char *host, int port, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
 int mo_chain_log_set_file_path(char *new_path);
 void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size);
 void mo_chain_log_flush(mo_chain_log_t *log);
 void mo_chain_log_dtor(mo_chain_log_t *log);
 void mo_chain_add_span(mo_chain_log_t *log, zval *span);
+void mo_chain_log_dtor(mo_chain_log_t *log);
 void mo_log_write(mo_chain_log_t *log, char *bytes, int size);
+
 #ifdef HAS_CURL
 void send_data_by_http(char *post_uri, char *post_data);
 #endif

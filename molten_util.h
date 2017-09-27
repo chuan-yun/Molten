@@ -153,6 +153,6 @@ void bin2hex64(char **output, const uint64_t *input);
 void rand64hex(char **output);
 void build_span_id_random(char **span_id, char *parent_span_id, int span_count);
 void build_span_id_level(char **span_id, char *parent_span_id, int span_count);
-int check_hit_ratio(long base);
+int check_hit_ratio(int probability , int divisor);
 smart_string repr_zval(zval *zv, int limit TSRMLS_DC);
 #endif

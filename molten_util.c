@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 #include "molten_util.h"
+#include <ext/standard/php_lcg.h>
 
 #if RAND_MAX/256 >= 0xFFFFFFFFFFFFFF
   #define LOOP_COUNT 1
@@ -45,15 +46,11 @@ uint64_t rand_uint64(void)
 }
 
 /* check is hit or not */
-int check_hit_ratio(long base)
+int check_hit_ratio(int probability , int divisor)
 {
-    struct timeval tv;
-    int seed = gettimeofday(&tv, NULL) == 0 ? tv.tv_usec * getpid() : getpid();
-    srandom(seed);
-    int num = random();
-    
-    /* the remainder 0 is choose by self */
-    if (num % base == 0) {
+    int nrand;
+    nrand = (int64_t) ((float) divisor * php_combined_lcg());
+    if (probability > 0 && nrand < probability) {
         return 1;
     } else {
         return 0;

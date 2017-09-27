@@ -32,6 +32,8 @@
 #define smart_string_appendl        smart_str_appendl
 #define smart_string_0              smart_str_0
 
+#define mo_zval_add_ref                       zval_add_ref
+
 /* php_json_encode */
 #define mo_php_json_encode          php_json_encode
 
@@ -158,6 +160,8 @@ static inline int mo_zend_hash_get_current_data(HashTable *ht, void **v)
 /* smart string */
 #include "ext/standard/php_smart_string.h"
 #include "Zend/zend_smart_str.h"
+
+#define mo_zval_add_ref(p)   Z_TRY_ADDREF_P(*p)
 
 /* php_json_encode */
 static void inline mo_php_json_encode(smart_string *s, zval *z, int options)

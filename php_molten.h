@@ -19,9 +19,6 @@
 
 #define PHP_MOLTEN_VERSION    "0.1.2beta"
 
-extern zend_module_entry molten_module_entry;
-#define phpext_trace_ptr &molten_module_entry
-
 #ifdef PHP_WIN32
 #   define PHP_MOLTEN_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
@@ -34,6 +31,24 @@ extern zend_module_entry molten_module_entry;
 #include "TSRM.h"
 #endif
 
+#include "php.h"
+#include "php_ini.h"
+#include "php_globals.h"
+#include "php_main.h"
+
+#include "php_streams.h"
+#include "php_network.h"
+
+#include "zend_interfaces.h"
+#include "zend_exceptions.h"
+#include "zend_variables.h"
+#include <stddef.h>
+#include <ext/date/php_date.h>
+#include <ext/standard/url.h>
+#include <ext/standard/info.h>
+#include <ext/standard/php_array.h>
+#include <ext/standard/basic_functions.h>
+
 #include "molten_chain.h"
 #include "molten_intercept.h"
 #include "molten_span.h"
@@ -44,6 +59,11 @@ extern zend_module_entry molten_module_entry;
 #include "molten_report.h"
 #include "molten_stack.h"
 #include "php7_wrapper.h"
+
+
+extern zend_module_entry molten_module_entry;
+#define phpext_trace_ptr &molten_module_entry
+
 
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
@@ -61,13 +81,15 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
 
     long                    sampling_type;          /* sampling type */
     long                    sampling_request;       /* sampling by request one minute */
-    long                    sampling_rate;          /* tracing sampling rate */
+    long                     sampling_rate;          /* tracing sampling rate */
     char                    *chain_log_path;        /* chain log path */
     char                    *service_name;          /* service name */
     zend_bool               tracing_cli;            /* enable cli  tracing */
     char                    *span_format;           /* the span format */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
+    char                    *socket_host;           /* report socket host */
+    int                     socket_port;            /* report socket port */
     char                    *notify_uri;            /* notify uri */
     long                    sink_type;              /* log sink type */
     long                    output_type;            /* sink spans output type */
@@ -93,7 +115,6 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     zend_bool               enable_sapi;            /* enable_sapi */
     zend_bool               in_request;             /* determine in requeset life time */
 ZEND_END_MODULE_GLOBALS(molten)
-
 
 #ifdef ZEND_ENGINE_3
     /* Always refer to the globals in your function as TRACE_G(variable). You are
