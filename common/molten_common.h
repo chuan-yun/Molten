@@ -18,11 +18,13 @@
 #define MOLTEN_COMMON_H
 
 #include <stdio.h>
+#include <stdlib.h>
 
-#ifdef MOLTEN_DEBUG
-#define MOLTEN_ERROR(format, ...) fprintf(stderr, "[MOLTEN] [file:%s] [line:%d]" format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
-#else
+//#ifdef MOLTEN_DEBUG
+//#define MOLTEN_ERROR(format, ...) fprintf(stderr, "[MOLTEN] [file:%s] [line:%d]" format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+//#else
+//#define MOLTEN_ERROR(format, ...)
+//#endif
+
 #define MOLTEN_ERROR(format, ...)
-#endif
-
 #endif

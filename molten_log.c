@@ -38,7 +38,7 @@ void send_data_by_http(char *post_uri, char *post_data)
             list = curl_slist_append(list, "Content-Type: application/json");
             curl_easy_setopt(curl, CURLOPT_URL, post_uri);
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_data);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 100L);
+            curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, 10000L);
             curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list);
 
             res = curl_easy_perform(curl);
