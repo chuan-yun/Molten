@@ -175,19 +175,15 @@ void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, lon
     log->alloc_size = 0;
     
     /* set support type */
-    log->support_type = SINK_LOG | SINK_STD | SINK_SYSLOG;
+    log->support_type = SINK_LOG | SINK_STD | SINK_SYSLOG ;
 #ifdef HAS_CURL
     log->support_type |= SINK_HTTP;
+    SLOG(SLOG_INFO, "[sink] has libcurl");
 #endif
 
 #ifdef HAS_KAFKA
     log->support_type |= SINK_KAFKA;
 #endif
-    
-    /* set sink none */
-    if (!(sink_type & log->support_type)) {
-        log->sink_type = SINK_NONE;
-    }
     
     /* todo for func cb, current use if else */
     if (log->sink_type == SINK_LOG) {

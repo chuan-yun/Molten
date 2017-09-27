@@ -67,14 +67,14 @@
 #define SINK_NONE       0
 #define SINK_LOG        1
 #define SINK_STD        2
-#define SINK_SYSLOG     3       /* only for unx domain udp syslog */
+#define SINK_SYSLOG     8       /* only for unx domain udp syslog */
 
 #ifdef HAS_CURL
 #define SINK_HTTP       4
 #endif
 
 #ifdef HAS_KAFKA 
-#define SINK_KAFKA      5
+#define SINK_KAFKA      16
 #endif
 
 #define SPANS_WRAP      1<<0
