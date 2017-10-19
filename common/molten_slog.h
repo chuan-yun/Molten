@@ -24,7 +24,7 @@
 #ifdef MOLTEN_DEBUG
 #define SLOG_INIT(type, log_file)               slog_init(type, log_file)
 #define SLOG_DESTROY()                          slog_destroy()
-#define SLOG(level, format, ...)         slog_record(level, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define SLOG(level, format, ...)                slog_record(level, __FILE__, __LINE__, format, ##__VA_ARGS__)
 #else
 #define SLOG_INIT(type, log_file)
 #define SLOG_DESTROY()
