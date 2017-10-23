@@ -1,4 +1,15 @@
 #!/bin/bash
+
+version_ge()
+{
+    python << EOF
+import sys
+from distutils.version import LooseVersion
+
+sys.exit(not (LooseVersion('$1') > LooseVersion('$2')))
+EOF
+}
+
 PHP_PATH=$1
 PHP_VERSION=$2
 
@@ -8,8 +19,13 @@ PHP_IZE=$PHP_PATH/bin/phpize
 PHP_CONF=$PHP_PATH/bin/php-config
 
 MO_EX_DIR=`$PHP_BIN -i|grep extension_dir|grep debug|awk -F'=>' '{print $2}'`
+
 ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors redis
-ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
+
+# mongodb not support php 5.3
+if version_ge $PHP_VERSION "5.4.0"; then
+    ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
+fi
 
 PHP_MAJOR=`echo $PHP_VERSION|cut -d'.' -f1`
 

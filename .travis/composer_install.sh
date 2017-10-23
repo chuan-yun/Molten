@@ -6,6 +6,7 @@ TEST_PATH=$2
 COMPOSER_JSON=$TEST_PATH/composer.json
 OLD55_JOSN=$TEST_PATH/composer.json.5.5
 OLD54_JOSN=$TEST_PATH/composer.json.5.4
+OLD53_JOSN=$TEST_PATH/composer.json.5.3
 
 function version_ge()
 {
@@ -23,6 +24,8 @@ if version_ge $PHP_VERSION "5.6.0"; then
     echo "skip"
 elif version_ge $PHP_VERSION "5.5.0";  then
     cp $OLD55_JOSN  $COMPOSER_JSON
-else
+elif version_ge $PHP_VERSION "5.4.0";  then
     cp $OLD54_JOSN  $COMPOSER_JSON
+else
+    cp $OLD53_JOSN  $COMPOSER_JSON
 fi

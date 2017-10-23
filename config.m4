@@ -51,6 +51,8 @@ if test "$PHP_PRACING" != "no"; then
 
   dnl compare subversion
   version=`$prefix/bin/php-config --version`
+  mainversion=${version%%.*}
+  echo $mainversion
   subversion=${version#*.}
   subversion=${subversion%.*}
    
@@ -87,12 +89,12 @@ if test "$PHP_PRACING" != "no"; then
       fi
 
       if test "$has_mysqlnd" = "1"; then
-        if test $subversion -gt 3; then
+        if test $mainversion -lt 7 && test $subversion -lt 4; then
+            AC_MSG_RESULT([version < 5.4 not include file])
+        else
             AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
             AC_DEFINE(MYSQLI_USE_MYSQLND, 1, [we define MYSQLI_USER_MYSQLND use mysqlnd to support mysqli])
             AC_MSG_RESULT([has found mysqlnd include file])
-        else
-            AC_MSG_RESULT([version < 5.4 not include file])
         fi
       else
         AC_MSG_RESULT([mysqlnd not found, mysqli support will not complete])
