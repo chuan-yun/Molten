@@ -92,7 +92,11 @@ int mo_ctrl_update_sampling(char *rec, mo_ctrm_t *mcm)
     }
 
     zval ret;
+#if PHP_VERSION_ID > 50400
     php_json_decode_ex(&ret, rec, strlen(rec), PHP_JSON_OBJECT_AS_ARRAY, 256);
+#else
+    php_json_decode(&ret, rec, strlen(rec), 1, 256);
+#endif
     
     if (MO_Z_TYPE_P(&ret) != IS_ARRAY) {
         return -1;

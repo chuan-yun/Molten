@@ -48,6 +48,11 @@ if test "$PHP_PRACING" != "no"; then
   else
     AC_MSG_RESULT([has found php json include file])
   fi
+
+  dnl compare subversion
+  version=`$prefix/bin/php-config --version`
+  subversion=${version#*.}
+  subversion=${subversion%.*}
    
   dnl check for mysqlnd
   AC_MSG_CHECKING([check for mysqlnd])
@@ -82,13 +87,18 @@ if test "$PHP_PRACING" != "no"; then
       fi
 
       if test "$has_mysqlnd" = "1"; then
-        AC_MSG_RESULT([has found mysqlnd include file])
-        AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
-        AC_DEFINE(MYSQLI_USE_MYSQLND, 1, [we define MYSQLI_USER_MYSQLND use mysqlnd to support mysqli])
+        if test $subversion -gt 3; then
+            AC_DEFINE(HAS_MYSQLND, 1, [we have mysqlnd to support mysqli])
+            AC_DEFINE(MYSQLI_USE_MYSQLND, 1, [we define MYSQLI_USER_MYSQLND use mysqlnd to support mysqli])
+            AC_MSG_RESULT([has found mysqlnd include file])
+        else
+            AC_MSG_RESULT([version < 5.4 not include file])
+        fi
       else
         AC_MSG_RESULT([mysqlnd not found, mysqli support will not complete])
       fi
   fi
+
 
   dnl check for pdo
   AC_MSG_CHECKING([check for pdo])
@@ -110,8 +120,8 @@ if test "$PHP_PRACING" != "no"; then
   if test "$pdo_inc_path" = ""; then
       AC_MSG_RESULT([pdo not found, pdo support will not complete])
   else
-      AC_MSG_RESULT([has found pdo include file])
-      AC_DEFINE(HAS_PDO, 1, [we support pdo])
+        AC_MSG_RESULT([has found pdo include file])
+        AC_DEFINE(HAS_PDO, 1, [we support pdo])
   fi
 
   dnl check for curl

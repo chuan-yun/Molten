@@ -38,7 +38,11 @@ void mo_request_handle(mo_ctrl_t *mrt TSRMLS_DC)
             php_output_end_all(TSRMLS_C);
     
             /* disable output after */ 
+#if PHP_VERSION_ID > 50400
             php_output_set_status(PHP_OUTPUT_DISABLED TSRMLS_C);
+#else
+            php_output_set_status(PHP_OUTPUT_HANDLER_END TSRMLS_C);
+#endif
         }
 
         /* POST update ctrl info */
@@ -76,7 +80,11 @@ void mo_request_handle(mo_ctrl_t *mrt TSRMLS_DC)
             php_output_end_all(TSRMLS_C);
 
             /* disable output after */ 
+#if PHP_VERSION_ID > 50400
             php_output_set_status(PHP_OUTPUT_DISABLED TSRMLS_C);
+#else
+            php_output_set_status(PHP_OUTPUT_HANDLER_END TSRMLS_C);
+#endif
         }
     }
 }
