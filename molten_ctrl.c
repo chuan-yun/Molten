@@ -22,7 +22,7 @@ int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *notify_uri, char *ip, long
     long min = mo_time_m();
     mo_ctrm_t mcm = {0, 1, sampling_type, sampling_rate, sampling_request};
     mo_repi_t mri = {0, 0};
-    mo_sr_t   msr = {min, sampling_request};
+    mo_sr_t   msr = {min, 0};
 
     /* init repi */
     prt->mcm = (mo_ctrm_t *)mo_create_slot(msm, MO_CTRL_SHM, (unsigned char *)&mcm, sizeof(mo_ctrm_t));
