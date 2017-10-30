@@ -18,15 +18,11 @@
 #include "config.h"
 #endif
 
-#include "php.h"
-#include "php_ini.h"
-#include "ext/standard/info.h"
 #include "php_molten.h"
 #include "zend_extensions.h"
 #include "SAPI.h"
 
 #include "molten_chain.h"
-#include "molten_log.h"
 #include "molten_util.h"
 #include "molten_slog.h"
 #include "php7_wrapper.h"
@@ -42,13 +38,20 @@
                 return SUCCESS;                                                                 \
             }                                                                                   \
     }                                                                                           \
-}while(0)                                                                                 
+}while(0)
+
 PHP_FUNCTION(molten_set_service_name);
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
 PHP_FUNCTION(molten_curl_reset);
 PHP_FUNCTION(molten_span_format);
+
+static PHP_METHOD(molten, __construct);
+static PHP_METHOD(molten, __destruct);
+static PHP_METHOD(molten, set);
+static PHP_METHOD(molten, addSpans);
+static PHP_METHOD(molten, getTraceHeader);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC);
@@ -90,6 +93,21 @@ ZEND_DECLARE_MODULE_GLOBALS(molten)
 /* Make sapi_module accessable */
 extern sapi_module_struct sapi_module;
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_molten_set, 0, 0, 1)
+    ZEND_ARG_ARRAY_INFO(0, settings, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_molten_add_spans, 0, 0, 1)
+    ZEND_ARG_ARRAY_INFO(0, spans, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_molten_header, 0, 0, 1)
+    ZEND_ARG_INFO(0, name)
+ZEND_END_ARG_INFO()
+
 /* Every user visible function must have an entry in trace_functions[]. */
 const zend_function_entry molten_functions[] = {
     PHP_FE(molten_set_service_name, NULL)
@@ -98,6 +116,15 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
     PHP_FE(molten_span_format, NULL)
+    PHP_FE_END  /* Must be the last line in trace_functions[] */
+};
+
+static zend_function_entry molten_methods[] = {
+    PHP_ME(molten, __construct,arginfo_void, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+    PHP_ME(molten, __destruct, arginfo_void, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
+    PHP_ME(molten, set,        arginfo_molten_set, ZEND_ACC_PUBLIC)
+    PHP_ME(molten, addSpans,  arginfo_molten_add_spans, ZEND_ACC_PUBLIC)
+    PHP_ME(molten, getTraceHeader,arginfo_molten_header, ZEND_ACC_PUBLIC)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
 
@@ -372,7 +399,6 @@ PHP_FUNCTION(molten_curl_exec)
         mo_chain_add_span(&PTG(pcl), curl_span);
         pop_span_context(&PTG(span_stack));
     }
-
 }
 /* }}} */
 
@@ -450,6 +476,9 @@ PHP_FUNCTION(molten_span_format)
 }
 /* }}} */
 
+zend_class_entry molten_ce;
+zend_class_entry *molten_class_entry_ptr;
+
 /* {{{ molten_module_entry
 */
 zend_module_entry molten_module_entry = {
@@ -480,19 +509,23 @@ ZEND_GET_MODULE(molten)
 PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_SYSTEM, OnUpdateBool, enable, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_log_path",       DEFAULT_LOG_DIR,  PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL, OnUpdateString, service_name, zend_molten_globals, molten_globals)
+
+    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_SYSTEM, OnUpdateString, service_name, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_type",         "1",            PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",         PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
+	STD_PHP_INI_ENTRY("molten.socket_host",           "127.0.0.1",    PHP_INI_SYSTEM, OnUpdateString, socket_host, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.socket_port",           "9981",         PHP_INI_SYSTEM, OnUpdateLong, socket_port, zend_molten_globals, molten_globals)
+
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.notify_uri",             "",            PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_SYSTEM, OnUpdateString, sink_http_uri, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",             PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",           PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_brokers",    "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_brokers, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
 PHP_INI_END()
@@ -513,6 +546,9 @@ PHP_MINIT_FUNCTION(molten)
 {
     ZEND_INIT_MODULE_GLOBALS(molten, php_trace_init_globals, NULL);
     REGISTER_INI_ENTRIES();
+
+    INIT_CLASS_ENTRY(molten_ce, "molten", molten_methods);
+    molten_class_entry_ptr = zend_register_internal_class(&molten_ce TSRMLS_CC);
 
     if (!PTG(enable)) {
         return SUCCESS;
@@ -556,10 +592,10 @@ PHP_MINIT_FUNCTION(molten)
 
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
-    mo_shm_ctor(&PTG(msm));   
+    mo_shm_ctor(&PTG(msm));
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
     mo_span_ctor(&PTG(psb), PTG(span_format));
-    mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
+    mo_chain_log_ctor(&PTG(pcl), PTG(socket_host), PTG(socket_port), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
     mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
 
@@ -629,7 +665,7 @@ PHP_RINIT_FUNCTION(molten)
     PTG(in_request) = 1;
     
     /* execute begin time */
-    PTG(execute_begin_time) = (long) SG(global_request_time) * 1000000;
+    PTG(execute_begin_time) = mo_time_usec();
 
     /* Join domain and path */
     join_ori_url(&PTG(request_uri), 1);
@@ -731,6 +767,66 @@ PHP_FUNCTION(molten_set_service_name)
     RETURN_TRUE;
 }
 /* }}} */
+
+static PHP_METHOD(molten, __construct)
+{
+    RETURN_TRUE;
+}
+
+static PHP_METHOD(molten, __destruct)
+{
+    RETURN_TRUE;
+}
+
+static PHP_METHOD(molten, set)
+{
+    zval *zset = NULL;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &zset) == FAILURE)
+    {
+        return;
+    }
+    RETURN_TRUE;
+}
+
+static PHP_METHOD(molten, addSpans)
+{
+    zval *span;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &span) == FAILURE)
+    {
+        return;
+    }
+    if (PTG(pct).pch.is_sampled == 1) {
+        mo_zval_add_ref(&span);
+        mo_chain_add_span1(&PTG(pcl), span);
+    }
+    RETURN_TRUE;
+}
+
+static PHP_METHOD(molten, getTraceHeader)
+{
+    zval *span;
+    char *span_id = NULL;
+    char *parent_span_id = NULL;
+
+    char *service_name = NULL;
+    size_t service_name_len;
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &service_name, &service_name_len) == FAILURE)
+    {
+        return;
+    }
+    if (PTG(pct).pch.is_sampled == 1) {
+        push_span_context(&PTG(span_stack));
+        uint64_t start_time = mo_time_usec();
+        retrieve_span_id(&PTG(span_stack), &span_id);
+        retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+
+        PTG(psb).start_span(&span, service_name, PTG(pct).pch.trace_id->val, span_id, parent_span_id, start_time, 0, &PTG(pct), AN_CLIENT);
+        pop_span_context(&PTG(span_stack));
+        RETURN_ZVAL(span, 0, 0);
+    } else {
+        RETURN_BOOL(0);
+    }
+}
 
 /* {{{ Obtain zend function */
 static inline zend_function *obtain_zend_function(zend_bool internal, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC)

@@ -179,7 +179,7 @@ void mo_ctrl_sampling(mo_ctrl_t *prt, mo_chain_t *pct)
 
         /* sampling rate */
         if (prt->mcm->sampling_type == SAMPLING_RATE) {
-            if (check_hit_ratio(prt->mcm->sampling_rate)) {
+            if (check_hit_ratio(prt->mcm->sampling_rate,100)) {
                 pct->pch.is_sampled = 1;
             } else {
                 pct->pch.is_sampled = 0;
