@@ -17,17 +17,30 @@
 #include "molten_ctrl.h"
 
 /* {{{ mo_ctrl_ctor */
-int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request)
+int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request, int is_cli)
 {
     long min = mo_time_m();
+
+    //for web sapi, all process use share memory, but for cli only use self config
     mo_ctrm_t mcm = {0, 1, sampling_type, sampling_rate, sampling_request};
     mo_repi_t mri = {0, 0};
     mo_sr_t   msr = {min, 0};
 
-    /* init repi */
-    prt->mcm = (mo_ctrm_t *)mo_create_slot(msm, MO_CTRL_SHM, (unsigned char *)&mcm, sizeof(mo_ctrm_t));
-    prt->mri = (mo_repi_t *)mo_create_slot(msm, MO_RECORD_SHM, (unsigned char *)&mri, sizeof(mo_repi_t));
-    prt->msr = (mo_sr_t *)mo_create_slot(msm, MO_SAMPLING_SHM, (unsigned char *)&msr, sizeof(mo_sr_t));
+    if (is_cli == 0) {
+
+        /* init repi */
+        prt->mcm = (mo_ctrm_t *)mo_create_slot(msm, MO_CTRL_SHM, (unsigned char *)&mcm, sizeof(mo_ctrm_t));
+        prt->mri = (mo_repi_t *)mo_create_slot(msm, MO_RECORD_SHM, (unsigned char *)&mri, sizeof(mo_repi_t));
+        prt->msr = (mo_sr_t *)mo_create_slot(msm, MO_SAMPLING_SHM, (unsigned char *)&msr, sizeof(mo_sr_t));
+    } else {
+        prt->mcm = (mo_ctrm_t *)malloc(sizeof(mo_ctrm_t));
+        prt->mri = (mo_repi_t *)malloc(sizeof(mo_repi_t));
+        prt->msr = (mo_sr_t *)malloc(sizeof(mo_sr_t));
+
+        memcpy(prt->mcm, &mcm, sizeof(mo_ctrm_t));
+        memcpy(prt->mri, &mri, sizeof(mo_repi_t));
+        memcpy(prt->msr, &msr, sizeof(mo_sr_t));
+    }
 
     /* notify uri */
     /* one process up, one notify */
@@ -43,8 +56,13 @@ int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *msm, char *notify_uri, char *ip, long
 /* }}} */
 
 /* {{{ mo_ctrl_dtor */
-void mo_ctrl_dtor(mo_ctrl_t *prt)
+void mo_ctrl_dtor(mo_ctrl_t *prt, int is_cli)
 {
+    if (is_cli == 1) {
+        free(prt->mcm);
+        free(prt->mri);
+        free(prt->msr);
+    }
     //array_free_persist(&prt->mri->capture_host);
     //pefree(prt->msr, 1);
 }
