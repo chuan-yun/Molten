@@ -48,6 +48,8 @@ PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
 PHP_FUNCTION(molten_curl_reset);
+PHP_FUNCTION(molten_fwrite);
+PHP_FUNCTION(molten_fputs);
 PHP_FUNCTION(molten_span_format);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
@@ -97,6 +99,8 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_setopt_array, NULL)
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
+    PHP_FE(molten_fwrite, NULL)
+    PHP_FE(molten_fputs, NULL)
     PHP_FE(molten_span_format, NULL)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
@@ -133,19 +137,38 @@ static const mo_reload_def prd[] = {
     {"curl_exec",           "molten_curl_exec",           "origin_molten_curl_exec"},
     {"curl_setopt_array",   "molten_curl_setopt_array",   "origin_molten_curl_setopt_array"},
     {"curl_reset",          "molten_curl_reset",          "origin_molten_curl_reset"},
+    {"fwrite",              "molten_fwrite",              "origin_molten_fwrite"},
+    {"fputs",               "molten_fputs",               "origin_molten_fputs"},
     {NULL, NULL, NULL}
 };
 /* }}} */
+
+/* reg */
+regex_t http_reg;
+const char *http_pattern = "^(GET|POST|PUT) /.* HTTP/(1\\.1|1\\.0).*";
 
 /* {{{ origin_funtion_handler */
 zend_function *origin_curl_setopt =  NULL;
 zend_function *origin_curl_exec =  NULL;
 zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
+zend_function *origin_fwrite = NULL;
+zend_function *origin_fputs = NULL;
 /* }}} */
 
+void compile_reg() {
+    regcomp(&http_reg, http_pattern, REG_EXTENDED);
+}
+
+void free_reg() {
+    regfree(&http_reg);
+}
+
+/* text add trace header */
+static char* add_trace_header(char *input_string, int is_sampled, mo_chain_t *pct, mo_stack  *span_stack);
+
 /* {{{ molten reload curl function for performance */
-static void molten_reload_curl_function()
+static void molten_reload_function()
 {
 #if PHP_MAJOR_VERSION < 7
     zend_function *orig, *replace;
@@ -195,6 +218,12 @@ static void molten_reload_curl_function()
     if (zend_hash_find(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset"), (void **)&orig_func) == SUCCESS ) {
         origin_curl_reset = orig_func;
     }
+    if (zend_hash_find(CG(function_table), "origin_molten_fwrite", sizeof("origin_molten_fwrite"), (void **)&orig_func) == SUCCESS ) {
+        origin_fwrite = orig_func;
+    }
+    if (zend_hash_find(CG(function_table), "origin_molten_fputs", sizeof("origin_molten_fputs"), (void **)&orig_func) == SUCCESS ) {
+        origin_fputs= orig_func;
+    }
 #else
     zend_function *orig_func;
     if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt") - 1)) != NULL) {
@@ -205,6 +234,15 @@ static void molten_reload_curl_function()
     }
     if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array") - 1)) != NULL ) {
         origin_curl_setopt_array = orig_func;
+    }
+    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset") - 1)) != NULL ) {
+        origin_curl_reset = orig_func;
+    }
+    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_fwrite", sizeof("origin_molten_fwrite") - 1)) != NULL ) {
+        origin_fwrite = orig_func;
+    }
+    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_fputs", sizeof("origin_molten_fputs") - 1)) != NULL ) {
+        origin_fputs = orig_func;
     }
 #endif
 }
@@ -431,6 +469,136 @@ PHP_FUNCTION(molten_curl_reset)
 }
 /* }}} */
 
+/* {{{ molten_fputs */
+PHP_FUNCTION(molten_fputs)
+{
+    /* before */
+	zval *res;
+    uint64_t entry_time;
+	int use_self = 0;
+    
+    /* build span_id */
+    if (PTG(pct).pch.is_sampled == 1) {
+        char *parent_span_id;
+        retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+		if (parent_span_id == NULL) {
+        	entry_time = mo_time_usec();
+			use_self = 1;
+        	push_span_context(&PTG(span_stack));
+		}
+    }
+
+    char *input;
+    int inputlen;
+    int ret;
+    int num_bytes;
+    long maxlen = 0;
+    php_stream *stream;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &input, &inputlen, &maxlen) == SUCCESS) {
+		char* change_text = add_trace_header(input, PTG(pct).pch.is_sampled, &PTG(pct), &PTG(span_stack));
+		if (change_text) {
+			change_string_param(2, change_text);
+			if (maxlen != 0) {
+				change_long_param(3, strlen(change_text));
+			}
+			efree(change_text);
+		}
+	}
+
+    /* execute origin function */
+    if (origin_fputs != NULL) {
+        origin_fputs->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+    }
+
+	/* after */
+    /* must sampling will do this */
+    if (PTG(pct).pch.is_sampled == 1) {
+		if (use_self == 1) {
+        	uint64_t current_time = mo_time_usec(); 
+        	zval *fputs_span;
+
+        	char *parent_span_id;
+			char *span_id;
+        	retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+        	retrieve_span_id(&PTG(span_stack), &span_id);
+
+        	PTG(psb).start_span(&fputs_span, "fputs", PTG(pct).pch.trace_id->val, span_id, parent_span_id, entry_time, current_time, &PTG(pct), AN_CLIENT);
+
+        	mo_chain_add_span(&PTG(pcl), fputs_span);
+        	pop_span_context(&PTG(span_stack));
+		}
+    }
+
+}
+/* }}} */
+
+/* {{{ molten_fwrite */
+/* for fwrite/fputs, we must use parent stack as self stack */
+PHP_FUNCTION(molten_fwrite)
+{
+    /* before */
+	zval *res;
+    uint64_t entry_time;
+	int use_self = 0;
+    
+    /* build span_id */
+    if (PTG(pct).pch.is_sampled == 1) {
+        char *parent_span_id;
+        retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+		if (parent_span_id == NULL) {
+        	entry_time = mo_time_usec();
+			use_self = 1;
+        	push_span_context(&PTG(span_stack));
+		}
+    }
+
+    char *input;
+    int inputlen;
+    int ret;
+    int num_bytes;
+    long maxlen = 0;
+    php_stream *stream;
+
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &input, &inputlen, &maxlen) == SUCCESS) {
+		char* change_text = add_trace_header(input, PTG(pct).pch.is_sampled, &PTG(pct), &PTG(span_stack));
+		if (change_text) {
+			change_string_param(2, change_text);
+			if (maxlen != 0) {
+				change_long_param(3, strlen(change_text));
+			}
+			efree(change_text);
+		}
+	}
+
+    /* execute origin function */
+    if (origin_fwrite != NULL) {
+        origin_fwrite->internal_function.handler(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+    }
+
+	/* after */
+    /* must sampling will do this */
+    if (PTG(pct).pch.is_sampled == 1) {
+		if (use_self == 1) {
+        	uint64_t current_time = mo_time_usec(); 
+        	zval *fwrite_span;
+
+        	char *parent_span_id;
+			char *span_id;
+        	retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
+        	retrieve_span_id(&PTG(span_stack), &span_id);
+	
+        	PTG(psb).start_span(&fwrite_span, "fwrite", PTG(pct).pch.trace_id->val, span_id, parent_span_id, entry_time, current_time, &PTG(pct), AN_CLIENT);
+
+        	//build_bannotation(fwrite_span, (long)current_time, &PTG(pit), res, "fwrite", 1);
+        	mo_chain_add_span(&PTG(pcl), fwrite_span);
+        	pop_span_context(&PTG(span_stack));
+		}
+    }
+
+}
+/* }}} */
+
 /* {{{ molten span format */
 PHP_FUNCTION(molten_span_format)
 { 
@@ -519,7 +687,10 @@ PHP_MINIT_FUNCTION(molten)
     }
 
     CHECK_SAPI_NAME;
-    
+	
+	/* compile reg */
+	compile_reg();
+   	
     /* slog */
     SLOG_INIT(SLOG_STDOUT, "/tmp/molten.log");
 
@@ -535,7 +706,7 @@ PHP_MINIT_FUNCTION(molten)
     zend_execute_internal = mo_execute_internal;
 
     /* Overload function */
-    molten_reload_curl_function();
+    molten_reload_function();
 
     /* Replace error call back */
     trace_original_error_cb = zend_error_cb;
@@ -578,6 +749,8 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     
     CHECK_SAPI_NAME;
 
+	/* free reg */
+	free_reg();
 
     /* Restore original executor */
 #if PHP_VERSION_ID < 50500
@@ -1247,6 +1420,82 @@ void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id)
 
         }
     }
+}
+
+/* determine http protocol */
+/* only here is molten trace header, other header not use */
+/* need free by efree */
+static char* add_trace_header(char *input_string, int is_sampled, mo_chain_t *pct, mo_stack  *span_stack) {
+    char *res = NULL;
+    //only check firt write with http header.
+    int status = regexec(&http_reg, input_string, 0, NULL, 0);
+	//char errbuf[1024];
+	//regerror(status, &http_reg, errbuf, 1024);
+	//zend_printf("the regerror is %s\n", errbuf);
+
+    if (status == 0) {
+
+        //check if or trace header or not
+        char *trace_header = strstr(input_string, MOLTEN_HEADER_PREFIX);
+        if (trace_header) {
+            return NULL;
+        }
+
+        //add trace header after Host header;
+        char *host = strstr(input_string, "Host:");
+		//zend_printf("the host is %s\n", host);
+        if (host) {
+            char *end = strstr(host, "\r\n");
+            if(end) {
+                smart_string replace_string = {0};
+                smart_string add_string= {0};
+                if (is_sampled == 1) {
+                    char *span_id;
+                    char *parent_span_id;
+                    retrieve_span_id(span_stack, &span_id);
+                    retrieve_parent_span_id(span_stack, &parent_span_id);
+                    HashTable *ht = pct->pch.chain_header_key;
+                    mo_chain_key_t *pck = NULL;
+                    for(zend_hash_internal_pointer_reset(ht); 
+                        zend_hash_has_more_elements(ht) == SUCCESS;
+                        zend_hash_move_forward(ht)) {
+                    
+                        if (mo_zend_hash_get_current_data(ht, (void **)&pck) == SUCCESS) {
+
+                            char *pass_value;
+                            int value_size;
+                            char *value;
+                            if (strncmp(pck->name, "span_id", sizeof("span_id") - 1) == 0 && span_id != NULL) {
+                                value = span_id;
+                            } else if (strncmp(pck->name, "parent_span_id", sizeof("parent_span_id") - 1) == 0 && parent_span_id != NULL) {
+                                value = parent_span_id;
+                            }else {
+                                value = pck->val;
+                            }
+                            value_size = strlen(pck->pass_key) + sizeof(": ") - 1 + strlen(value) + 1 + 2;
+                            pass_value = emalloc(value_size);
+                            snprintf(pass_value, value_size, "%s: %s\r\n", pck->pass_key, value);
+                            pass_value[value_size - 1] = '\0';
+
+                            //add to string
+                            smart_string_appends(&add_string, pass_value); 
+                            efree(pass_value);
+                        }
+                    }
+                } else {
+                   smart_string_appends(&add_string, MOLTEN_HEADER_SAMPLED": 0\r\n");
+                }
+
+				smart_string_0(&add_string);
+                smart_string_appendl(&replace_string, input_string, (int)(end+2 - input_string));
+				smart_string_appendl(&replace_string, smart_string_str(add_string), smart_string_len(add_string));
+                smart_string_appends(&replace_string, (end+2));
+                res = smart_string_str(replace_string);
+                smart_string_free(&add_string);
+            }
+        }
+    }
+    return res;
 }
 
 

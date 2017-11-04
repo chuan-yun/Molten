@@ -30,6 +30,7 @@
 #define MAX_SPANS       65534
 #define MAX_SPANS_LEN   5
 
+
 /* rand uini64 */
 uint64_t rand_uint64(void) 
 {
@@ -203,5 +204,41 @@ smart_string repr_zval(zval *zv, int limit TSRMLS_DC)
     }
 }
 /* }}} */
+/* {{{ change string param */
+/* only used by internal function */
+void change_string_param(int num, char *string) {
 
+	zend_execute_data *ex = EG(current_execute_data);
 
+#if PHP_VERSION_ID > 70000
+    if (EG(execute_execte_data)->prev_execute_data) {
+    	ex = execute_data->prev_execute_data;
+	}	
+#endif		
+	
+	void **p = ex->function_state.arguments;
+	int arg_count = (int)(zend_uintptr_t) *p;
+    zval *arg = *((zval **) (p-(arg_count-(num -1))));
+	if (MO_Z_TYPE_P(arg) == IS_STRING) {
+		efree(Z_STRVAL_P(arg));
+		ZVAL_STRING(arg, string, 1);
+	}
+}
+
+void change_long_param(int num, long length) {
+
+	zend_execute_data *ex = EG(current_execute_data);
+
+#if PHP_VERSION_ID > 70000
+    if (EG(execute_execte_data)->prev_execute_data) {
+    	ex = execute_data->prev_execute_data;
+	}	
+#endif		
+	
+	void **p = ex->function_state.arguments;
+	int arg_count = (int)(zend_uintptr_t) *p;
+    zval *arg = *((zval **) (p-(arg_count-(num -1))));
+	if (MO_Z_TYPE_P(arg) == IS_LONG) {
+		ZVAL_LONG(arg, length);
+	}
+}

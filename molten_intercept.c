@@ -1239,8 +1239,23 @@ static void default_capture(mo_interceptor_t *pit, mo_frame_t *frame)
 {
     init_span_extra(frame);
     char *value = convert_args_to_string(frame); 
-    pit->psb->span_add_ba_ex(frame->span_extra,  "db.statement", value, frame->entry_time, pit->pct, BA_NORMAL);
+    pit->psb->span_add_ba_ex(frame->span_extra,  "statement", value, frame->entry_time, pit->pct, BA_NORMAL);
     efree(value);
+}
+/* }}} */
+
+/* {{{ default record */
+static void default_record(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    zval *span = build_com_record(pit, frame, 0);
+    
+    merge_span_extra(span, frame);
+
+    /* check exception */
+    SET_DEFAULT_EXCEPTION(frame, pit);
+
+    /* add span */
+    mo_chain_add_span(pit->pct->pcl, span);
 }
 /* }}} */
 
@@ -1512,6 +1527,17 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         ADD_INTERCEPTOR_TAG(pit, Elasticsearch\\Namespaces\\IndicesNamespace);
         INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@delete, &default_capture,  &default_es_record);
         INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@create, &default_capture, &default_es_record);
+    }
+    
+    /* phprpc */
+    {
+        ADD_INTERCEPTOR_TAG(pit, _PHPRPC_Client);
+        INIT_INTERCEPTOR_ELE(_PHPRPC_Client@_post, &default_capture, &default_record);
+        INIT_INTERCEPTOR_ELE(_PHPRPC_Client@invoke, &default_capture, &default_record);
+
+        ADD_INTERCEPTOR_TAG(pit, PHPRPC_Server);
+        INIT_INTERCEPTOR_ELE(PHPRPC_Server@start, &default_capture, &default_record);
+        INIT_INTERCEPTOR_ELE(PHPRPC_Server@callFunction, &default_capture, &default_record);
     }
 }
 /* }}} */
