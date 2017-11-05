@@ -206,39 +206,53 @@ smart_string repr_zval(zval *zv, int limit TSRMLS_DC)
 /* }}} */
 /* {{{ change string param */
 /* only used by internal function */
-void change_string_param(int num, char *string) {
+static zval* parse_arg(int num) {
+	zend_execute_data *ex; 
+	ex = EG(current_execute_data);
 
-	zend_execute_data *ex = EG(current_execute_data);
-
-#if PHP_VERSION_ID > 70000
-    if (EG(execute_execte_data)->prev_execute_data) {
-    	ex = execute_data->prev_execute_data;
-	}	
-#endif		
-	
+#if PHP_VERSION_ID < 70000
 	void **p = ex->function_state.arguments;
 	int arg_count = (int)(zend_uintptr_t) *p;
     zval *arg = *((zval **) (p-(arg_count-(num -1))));
-	if (MO_Z_TYPE_P(arg) == IS_STRING) {
+	if (arg_count >= num) {
+		return arg;
+	}
+#else
+    int arg_count = ZEND_CALL_NUM_ARGS(ex);
+    if (arg_count && arg_count >= num) {
+        zval *p = ZEND_CALL_ARG(ex, 1);
+        if (ex->func->type == ZEND_USER_FUNCTION) {
+            uint32_t first_extra_arg = ex->func->op_array.num_args;
+
+            if (first_extra_arg && arg_count > first_extra_arg) {
+              	p = ZEND_CALL_VAR_NUM(ex, ex->func->op_array.last_var + ex->func->op_array.T);
+        	}
+		}
+		return p+(num-1);
+    } 
+#endif	
+	return NULL;
+}
+
+/* replace string param */
+void change_string_param(int num, char *string) {
+	zval *arg = parse_arg(num);
+	if (arg != NULL) {
+#if PHP_VERSION_ID < 70000
 		efree(Z_STRVAL_P(arg));
 		ZVAL_STRING(arg, string, 1);
+#else 
+		zend_string_delref(Z_STR_P(arg));	
+		zend_string *p = zend_string_init(string, strlen(string), 0);
+		Z_STR_P(arg) = p;
+#endif
 	}
 }
 
+/* replace long param */
 void change_long_param(int num, long length) {
-
-	zend_execute_data *ex = EG(current_execute_data);
-
-#if PHP_VERSION_ID > 70000
-    if (EG(execute_execte_data)->prev_execute_data) {
-    	ex = execute_data->prev_execute_data;
-	}	
-#endif		
-	
-	void **p = ex->function_state.arguments;
-	int arg_count = (int)(zend_uintptr_t) *p;
-    zval *arg = *((zval **) (p-(arg_count-(num -1))));
-	if (MO_Z_TYPE_P(arg) == IS_LONG) {
+	zval *arg = parse_arg(num);
+	if (arg != NULL) {
 		ZVAL_LONG(arg, length);
 	}
 }

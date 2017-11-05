@@ -26,6 +26,9 @@
 /* {{{ pt intercept hit function */
 zend_bool mo_intercept_hit(mo_interceptor_t *pit, mo_interceptor_ele_t **eleDest, char *class_name, char *function_name)
 {
+    if (function_name == NULL) {
+        return 0;
+    }
     mo_interceptor_ele_t *ele;
     /* when the intercept set capture, if not sampled, the hit will return 1 
      * if intercept don`t set capture, if not sampled, the hit will return 0
@@ -1259,6 +1262,17 @@ static void default_record(mo_interceptor_t *pit, mo_frame_t *frame)
 }
 /* }}} */
 
+
+/* {{{ default capture */
+static void es_default_capture(mo_interceptor_t *pit, mo_frame_t *frame)
+{
+    init_span_extra(frame);
+    char *value = convert_args_to_string(frame); 
+    pit->psb->span_add_ba_ex(frame->span_extra,  "db.statement", value, frame->entry_time, pit->pct, BA_NORMAL);
+    efree(value);
+}
+/* }}} */
+
 /* {{{ guzzle request capture */
 static void guzzle_request_capture(mo_interceptor_t *pit, mo_frame_t *frame) 
 {
@@ -1518,15 +1532,15 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     /* elastic search */
     {
         ADD_INTERCEPTOR_TAG(pit, Elasticsearch\\Client);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@index, &default_capture, &es_request_record);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@get, &default_capture, &es_request_record);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@search, &default_capture, &es_request_record);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@delete, &default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@index, &es_default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@get, &es_default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@search, &es_default_capture, &es_request_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Client@delete, &es_default_capture, &es_request_record);
 
 
         ADD_INTERCEPTOR_TAG(pit, Elasticsearch\\Namespaces\\IndicesNamespace);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@delete, &default_capture,  &default_es_record);
-        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@create, &default_capture, &default_es_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@delete, &es_default_capture,  &default_es_record);
+        INIT_INTERCEPTOR_ELE(Elasticsearch\\Namespaces\\IndicesNamespace@create, &es_default_capture, &default_es_record);
     }
     
     /* phprpc */

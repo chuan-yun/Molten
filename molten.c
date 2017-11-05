@@ -488,15 +488,13 @@ PHP_FUNCTION(molten_fputs)
 		}
     }
 
-    char *input;
-    int inputlen;
-    int ret;
+    char *write = NULL;
+    long write_len = 0;
     int num_bytes;
     long maxlen = 0;
-    php_stream *stream;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &input, &inputlen, &maxlen) == SUCCESS) {
-		char* change_text = add_trace_header(input, PTG(pct).pch.is_sampled, &PTG(pct), &PTG(span_stack));
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &write, &write_len, &maxlen) == SUCCESS) {
+		char* change_text = add_trace_header(write, PTG(pct).pch.is_sampled, &PTG(pct), &PTG(span_stack));
 		if (change_text) {
 			change_string_param(2, change_text);
 			if (maxlen != 0) {
@@ -554,13 +552,11 @@ PHP_FUNCTION(molten_fwrite)
     }
 
     char *input;
-    int inputlen;
-    int ret;
+    long input_len;
     int num_bytes;
     long maxlen = 0;
-    php_stream *stream;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &input, &inputlen, &maxlen) == SUCCESS) {
+    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs|l", &res, &input, &input_len, &maxlen) == SUCCESS) {
 		char* change_text = add_trace_header(input, PTG(pct).pch.is_sampled, &PTG(pct), &PTG(span_stack));
 		if (change_text) {
 			change_string_param(2, change_text);
@@ -595,7 +591,6 @@ PHP_FUNCTION(molten_fwrite)
         	pop_span_context(&PTG(span_stack));
 		}
     }
-
 }
 /* }}} */
 
@@ -1429,9 +1424,6 @@ static char* add_trace_header(char *input_string, int is_sampled, mo_chain_t *pc
     char *res = NULL;
     //only check firt write with http header.
     int status = regexec(&http_reg, input_string, 0, NULL, 0);
-	//char errbuf[1024];
-	//regerror(status, &http_reg, errbuf, 1024);
-	//zend_printf("the regerror is %s\n", errbuf);
 
     if (status == 0) {
 
@@ -1443,6 +1435,7 @@ static char* add_trace_header(char *input_string, int is_sampled, mo_chain_t *pc
 
         //add trace header after Host header;
         char *host = strstr(input_string, "Host:");
+
 		//zend_printf("the host is %s\n", host);
         if (host) {
             char *end = strstr(host, "\r\n");
@@ -1497,5 +1490,3 @@ static char* add_trace_header(char *input_string, int is_sampled, mo_chain_t *pc
     }
     return res;
 }
-
-
