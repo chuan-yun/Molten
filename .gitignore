@@ -84,3 +84,10 @@ tests/tmplog
 tests/*.mem
 tests/vendor
 tests/composer.lock
+
+# Agent
+agent/CMakeFiles
+agent/CMakeCache.txt
+agent/cmake_install.cmake
+agent/tags
+agent/mml
