@@ -592,8 +592,10 @@ PHP_MINIT_FUNCTION(molten)
 
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
-    mo_shm_ctor(&PTG(msm));
-    mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request));
+
+    mo_shm_ctor(&PTG(msm));   
+    mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request), PTG(pct).is_cli);
+
     mo_span_ctor(&PTG(psb), PTG(span_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(socket_host), PTG(socket_port), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
@@ -630,7 +632,7 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     
     /* module dtor */
     mo_shm_dtor(&PTG(msm));   
-    mo_ctrl_dtor(&PTG(prt));
+    mo_ctrl_dtor(&PTG(prt), PTG(pct).is_cli);
     mo_chain_log_dtor(&PTG(pcl));
     mo_intercept_dtor(&PTG(pit));
     mo_rep_dtor(&PTG(pre));
