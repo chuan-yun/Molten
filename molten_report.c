@@ -33,7 +33,7 @@ void mo_rep_ctor(mo_report_t *pre, long rep_interval, long report_limit)
     pre->rep_interval = rep_interval;
     pre->report_limit = report_limit;
 
-    zend_llist_init(&pre->error_list, sizeof(mo_rep_error_t), rep_error_dtor, 1);   
+    zend_llist_init(&pre->error_list, sizeof(mo_rep_error_t), rep_error_dtor, 1);
 
     /* init repi */
     /*
@@ -159,7 +159,7 @@ void mo_rep_record_data(mo_report_t *pre, mo_repi_t *pri, mo_chain_log_t *pcl, s
     }
     */
 
-    if (check_interval(pre, usec)) {
+//    if (check_interval(pre, usec)) {
 
         /*
         smart_string_appendl(&send, REPORT_FLAG, sizeof(REPORT_FLAG) - 1);
@@ -182,7 +182,7 @@ void mo_rep_record_data(mo_report_t *pre, mo_repi_t *pri, mo_chain_log_t *pcl, s
         MO_FREE_ALLOC_ZVAL(pack);
         */
 
-        if (zend_llist_count > 0) {
+        if (zend_llist_count(&pre->error_list) > 0) {
             smart_string send = {0};
             format_llist_to_array(&send, &pre->error_list);
 
@@ -201,6 +201,6 @@ void mo_rep_record_data(mo_report_t *pre, mo_repi_t *pri, mo_chain_log_t *pcl, s
             */
             zend_llist_init(&pre->error_list, sizeof(mo_rep_error_t), rep_error_dtor, 1);   
         }
-    }
+//    }
 }
 /* ]}} */

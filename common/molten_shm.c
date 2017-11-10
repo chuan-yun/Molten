@@ -42,7 +42,7 @@ void mo_shm_ctor(mo_shm_t *msm)
         MOLTEN_ERROR("[shm] shmat error:%d", errno);
         return;
     }
-    
+    memset(msm->mm, 0, msm->shm_size);
     /* lock ctx init */ 
     if (mo_lock_init() == -1) {
         MOLTEN_ERROR("[shm] mo lock init error");
