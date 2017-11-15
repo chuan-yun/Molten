@@ -226,9 +226,6 @@ void mo_chain_ctor(mo_chain_t *pct, mo_chain_log_t *pcl, mo_span_builder *psb, m
         /* request method */
         pct->method = (char *) SG(request_info).request_method;
 
-        /* service name */
-        pct->service_name = estrdup(service_name);
-
         pct->span_stack = span_stack;
 
         /* init error list */
@@ -344,7 +341,6 @@ void mo_chain_dtor(mo_chain_t *pct, mo_span_builder *psb, mo_stack *span_stack)
 
         mo_chain_add_span(pct->pcl, span);
 
-        efree(pct->service_name);
 
         /* free error list */
         mo_zval_ptr_dtor(&pct->error_list);
