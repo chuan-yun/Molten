@@ -450,6 +450,35 @@ PHP_FUNCTION(molten_span_format)
 }
 /* }}} */
 
+/* {{{ molten update service name */
+ZEND_INI_MH(molten_update_service_name)
+{
+#if PHP_VERSION_ID < 70000 
+    if (new_value_length == 0) {
+        return FAILURE;
+    }
+
+    if (OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC) == FAILURE) {
+        return FAILURE;
+    }
+    
+    PTG(pct).service_name = new_value;
+#else
+	if (ZSTR_LEN(new_value) <= 0) {
+		return FAILURE;
+	}
+
+   	if (OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage) == FAILURE) {
+         return FAILURE;
+    }
+ 
+    PTG(pct).service_name = ZSTR_VAL(new_value);
+#endif
+
+    return SUCCESS;
+}
+/* }}} */
+
 /* {{{ molten_module_entry
 */
 zend_module_entry molten_module_entry = {
@@ -480,7 +509,7 @@ ZEND_GET_MODULE(molten)
 PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_SYSTEM, OnUpdateBool, enable, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_log_path",       DEFAULT_LOG_DIR,  PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL, OnUpdateString, service_name, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL, molten_update_service_name, service_name, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
