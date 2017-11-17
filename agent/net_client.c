@@ -1,45 +1,4 @@
-#ifndef __MOLTEN_AGENT_CLIENT_H
-#define __MOLTEN_AGENT_CLIENT_H
-
-#include "common.h"
-
-#define CLIENT_BUF_SIZE    32
-
-typedef struct{
-    int read_pos;       /* read pos */
-    int len;            /* real size */
-    int cap;            /* capacity */
-    int rewind_count;    /* rewind time reach will reduce */
-    char *read_buf;     /* true buffer */
-}reader;
-
-typedef struct {
-    int write_pos;       /* read pos */
-    int len;            /* real size */
-    int cap;            /* capacity */
-    int rewind_count;   /* rewind time reach will reduce */
-    char *write_buf;
-}writer;
-
-/* for reader and writer */
-/* noneed to use ring buffer, the size we do not know */
-typedef struct {
-    int buf_size;
-    int read_pos;
-    int write_pos;
-    char *buf;
-}rwer;
-
-/* for net client */
-typedef struct {
-    int fd;
-    time_t create_time;
-    sstring client_ip;
-    time_t last_read;
-    reader *r;
-    writer *w;
-}net_client;
-
+#include "net_client.h"
 /* reader and writer */
 /* writer buf */
 /* read buf */
@@ -79,8 +38,6 @@ void append_rw_reader(rwer *rw, const char *string , int size) {
         rw->read_pos += size;
     }
 }
-
-
 
 /* rewind read write pos to start */
 int rwer_rewind(rwer *rw) {
@@ -123,6 +80,16 @@ reader* new_reader() {
     return r;
 }
 
+/* read size */
+int reader_read_size(reader *r) {
+    return r->len - r->read_pos;
+}
+
+char *reader_read_start(reader *r) {
+    return r->read_buf + r->read_pos;
+}
+
+/* reduce reader */
 void reduce_reader(reader *r) {
     /* here memory is overlap , use memmove */
     if (r->rewind_count > 50) {
@@ -138,24 +105,38 @@ void reduce_reader(reader *r) {
 /* if use ring buffer, it not simple dilatation */
 void rewind_reader(reader *r) {
     if (r->read_pos == r->len) {
+        if (r->read_pos == 0) {
+            return;
+        }
         r->read_pos = r->len = 0;
         memset(r->read_buf, 0x00, r->cap);
         r->rewind_count = 0;
     } else {
         r->rewind_count++;
+        reduce_reader(r);
     }
-    reduce_reader(r);
 }
 
+/* offset reader pos */
+/* return 0 success -1 fail */
+int forward_reader_pos(reader *r, int offset) {
+    if (r->read_pos + offset > r->len) {
+        return -1;
+    }
+    r->read_pos += offset;
+    rewind_reader(r);
+    return 0;
+}
+
+/* appen size to reader */
 void append_reader(reader *r, const char *string, int size) {
     appender(&r->read_buf, &r->cap, &r->len, string , size);
 }
 
-static void free_reader(reader *r) {
+void free_reader(reader *r) {
     sfree(r->read_buf);
     sfree(r);
 }
-
 
 /* new writer */
 writer* new_writer() {
@@ -200,6 +181,7 @@ void append_writer(writer *w, const char *string, int size) {
 }
 
 /* writer */
+/* leve triger no need to write until EWOULDBLOCK */
 /* use in single thread, no condition race */
 int writer_write(writer *w, int fd) {
     char *start_pos;
@@ -229,13 +211,6 @@ int writer_write(writer *w, int fd) {
     }
 }
 
-// for echo server
-void reader_to_writer(reader *r, writer *w) {
-    append_writer(w, r->read_buf + r->read_pos, r->len - r->read_pos);
-    r->read_pos = r->len;
-    rewind_reader(r);
-}
-
 /* net client */
 net_client *new_client(int fd, char *client_ip) {
     net_client *nc = smalloc(sizeof(net_client));  
@@ -255,4 +230,3 @@ void free_client(net_client *nc) {
     sstring_free(nc->client_ip);
     sfree(nc);
 }
-#endif

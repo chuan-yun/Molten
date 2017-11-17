@@ -32,7 +32,7 @@ size_t smalloc_size(void *p) {
 }
 
 static void smalloc_oom(size_t size) {
-    fprintf(stderr, "Out of memory, alloc %zx bytes error\n", size);
+    fprintf(stderr, "Out of memory, alloc %d bytes error\n", size);
     fflush(stderr);
     abort();
 }
@@ -43,7 +43,7 @@ void *smalloc(size_t size) {
         smalloc_oom(size);
     }
     *((size_t *)p) = size;
-    incr_used_bytes(size + MEMORY_PREFIX_SIZE + size); 
+    incr_used_bytes(MEMORY_PREFIX_SIZE + size); 
     return (char *)p + MEMORY_PREFIX_SIZE;
 }
 
@@ -56,6 +56,7 @@ void sfree(void *p) {
 }
 
 void *srealloc(void *p, size_t size) {
+    if (p == NULL) return smalloc(size);
     void *r = (char *)p - MEMORY_PREFIX_SIZE;
     size_t old_size = *(size_t *)r;
     void *n = realloc(r, size + MEMORY_PREFIX_SIZE); 
@@ -63,7 +64,7 @@ void *srealloc(void *p, size_t size) {
         smalloc_oom(size);
     }
     *((size_t *)n) = size;
-    decr_used_bytes(old_size);
+    decr_used_bytes(old_size + MEMORY_PREFIX_SIZE);
     incr_used_bytes(size + MEMORY_PREFIX_SIZE);
     return (char *)n + MEMORY_PREFIX_SIZE;
 }

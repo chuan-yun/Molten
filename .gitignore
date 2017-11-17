@@ -91,3 +91,4 @@ agent/CMakeCache.txt
 agent/cmake_install.cmake
 agent/tags
 agent/mml
+agent/client

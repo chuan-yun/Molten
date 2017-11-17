@@ -36,20 +36,14 @@ static void sig_stop_server(int sig) {
         msg = "Received SIGNAL to shutdown ... ";
     }
     server.prepare_stop = 1; 
+    server.el->stop = 1;
     AGENT_SLOG(SLOG_DEBUG, "[server]agent server prepare to stop");
 }
 
 static void dump_server_status(int sig) {
-    //dump server run status
-    printf("------------server status--------------\n");
-    printf("---------server memory used------------\n");
-
-    //read from smalloc and read from proc
-    printf("smalloc: %d\n", dump_used_bytes());
-
-    //dump active client
-    printf("-------------client detail------------\n");
-    printf("active_client:%d, total_client:%d\n", server.active_client_num, server.total_client_num);
+    sstring status =  server_status();
+    sstring_print(status);
+    sstring_free(status);
 }
 
 static void set_signal_handlers() {
@@ -124,19 +118,14 @@ int main() {
     //uint64_t  period;
     // simple control info
     // one thread to collect info
-    for(;;) {
+    // 
+    // time event need to process, 1 clear dead connection  2 heart beat  3 tick check
 
-        if (server.prepare_stop == 1)  {
-            break;
-        }
-
-        // 100 ms tick   
-        execute_loop(server.el);
-    }
+    // 100 ms tick   
+    execute_loop(server.el);
 
     server_shutdown();
     slog_destroy();
     //timer
-    //net event
     //tick
 }

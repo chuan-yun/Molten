@@ -3,6 +3,9 @@
 
 #include <assert.h>
 #include <time.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include <stdlib.h>
 
 #include "molten_slog.h"
@@ -88,4 +91,19 @@ typedef struct {
 
 extern m_server server;
 
+// here we can use clock_gettime, but our timer is millisecond level, not need more precision
+// timespec see you goodbye
+static inline long get_current_usec() {
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec * 1000 * 1000 + time.tv_usec;
+}
+
+static inline long get_current_msec() {
+    struct timeval time;
+    gettimeofday(&time, NULL);
+    return time.tv_sec * 1000 + time.tv_usec/1000;
+}
+ 
+sstring server_status();
 #endif
