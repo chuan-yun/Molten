@@ -33,10 +33,10 @@ static void process_server_status(net_client *nc, const char *body, int body_siz
 }
 
 static cmd cmd_list[] = {
-    {"echo",         PROTOCOL_ECHO,         process_echo,       1},
-    {"time",         PROTOCOL_TIME,         process_time,       1},
-    {"heartbeat",    PROTOCOL_TIME,         process_time,       1},
-    {"status",       PROTOCOL_STATUS,       process_server_status,       1}
+    {"echo",         PROTOCOL_ECHO,         process_echo,               1},
+    {"time",         PROTOCOL_TIME,         process_time,               1},
+    {"heartbeat",    PROTOCOL_TIME,         process_time,               1},
+    {"status",       PROTOCOL_STATUS,       process_server_status,      1}
     //PROTOCOL_HEARTBEAT,
 };
 

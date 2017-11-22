@@ -11,6 +11,7 @@
 #include "molten_slog.h"
 #include "smalloc.h"
 #include "sstring.h"
+#include "trace.h"
 
 #define AGENT_SLOG(level, format, ...)                slog_record(level, __FILE__, __LINE__, format, ##__VA_ARGS__)
 

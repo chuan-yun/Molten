@@ -10,10 +10,10 @@
 #include "socket.h"
 #include "protocol.h"
 #include "timer.h"
+#include "atomic.h"
 
 #define MAX_CONNECtiON          1024 /* for debug now */
 #define ADDItION_CONNECTION     96   /* keep hole for process used */
-
 
 void remove_net_event(event_loop *el, int fd, int mask);
 int add_net_event(event_loop *el, int fd, void *client, net_event_process process, int mask);

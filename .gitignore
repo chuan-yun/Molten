@@ -92,3 +92,5 @@ agent/cmake_install.cmake
 agent/tags
 agent/mml
 agent/client
+agent/molten_agent
+agent/molten_client

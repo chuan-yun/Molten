@@ -75,22 +75,21 @@ void main_loop_stop(event_loop *el) {
     el->stop = 1;
 }
 
-//void tick_hello(void *data) {
-//    printf("the hello \n");
-//}
-//
-//void tick_name(void *data) {
-//    printf("say name %s\n", (char *)data);
-//}
+void tick_hello(void *data) {
+    printf("the hello \n");
+}
+
+void tick_name(void *data) {
+    printf("say name %s\n", (char *)data);
+}
 
 static void time_event(tw *t) {
-
     // test timer 
-    //timer_node *hello_timer = create_timer_node(3001, 1, 1, NULL, tick_hello, NULL);
-    //timer_node *name_timer = create_timer_node(3011, 1, 1, "baibing", tick_name, NULL);
+    timer_node *hello_timer = create_timer_node(3001, 0, 1, NULL, tick_hello, NULL);
+    timer_node *name_timer = create_timer_node(3011, 1, 1, "baibing", tick_name, NULL);
 
-    //add_timer_node(t, hello_timer);
-    //add_timer_node(t, name_timer);
+    add_timer_node(t, hello_timer);
+    add_timer_node(t, name_timer);
 }
 
 /* execute loop */
@@ -142,8 +141,7 @@ static void release_client(event_loop *el, net_client *c) {
         close(c->fd);
         c->fd = -1;
 
-        //automic
-        server.active_client_num--;
+        atomic_decr(&server.active_client_num);
    }
    free_client(c);
 }
@@ -248,7 +246,6 @@ void accept_net_client(event_loop *el, int fd, void *client, int mask) {
     //todo tcp keepalive 
     add_net_event(el, client_fd, (void *)nc, read_from_client, EVENT_READ);
 
-    //todo automic add client_num;
-    server.active_client_num++;
-    server.total_client_num++;
+    atomic_incr(&server.active_client_num);
+    atomic_incr(&server.total_client_num);
 }

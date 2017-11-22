@@ -1,0 +1,3 @@
+probe process("molten_agent").provider("agent").mark("*") {
+    println("\x1b[35m" . probefunc(). " ". $$parms . "\x1b[0m");
+}

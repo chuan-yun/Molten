@@ -5,6 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "trace.h"
+#include "atomic.h"
+
 #define MEMORY_PREFIX_SIZE sizeof(size_t)
 
 size_t smalloc_size(void *p);

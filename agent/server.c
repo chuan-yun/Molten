@@ -121,11 +121,8 @@ int main() {
     // 
     // time event need to process, 1 clear dead connection  2 heart beat  3 tick check
 
-    // 100 ms tick   
     execute_loop(server.el);
 
     server_shutdown();
     slog_destroy();
-    //timer
-    //tick
 }

@@ -1,7 +1,8 @@
-#include <smalloc.h>
+#include "smalloc.h"
 
 /* memory alloc */
 /* |prefx(size_t)| ********memory *******| padding for sizeof(long),  we pretend it has| */
+
 static size_t used_bytes;
 
 static void incr_used_bytes(size_t size){
@@ -10,9 +11,7 @@ static void incr_used_bytes(size_t size){
         size += sizeof(long) - (size & (sizeof(long) -1));
     }
     
-    /* for atomic __sync* function group*/
-    /* todo */
-    used_bytes += size;
+    atomic_add(&used_bytes, size);
 }
 
 static void decr_used_bytes(size_t size) {
@@ -20,7 +19,7 @@ static void decr_used_bytes(size_t size) {
     if(size & (sizeof(long)-1))  {
         size += sizeof(long) - (size & (sizeof(long) -1));
     }
-    used_bytes -= size;
+    atomic_sub(&used_bytes, size);
 }
 
 size_t smalloc_size(void *p) {
@@ -38,6 +37,7 @@ static void smalloc_oom(size_t size) {
 }
 
 void *smalloc(size_t size) {
+    AGENT_SMALLOC(size);
     void *p = malloc(MEMORY_PREFIX_SIZE + size);
     if (!p) {
         smalloc_oom(size);
@@ -48,6 +48,7 @@ void *smalloc(size_t size) {
 }
 
 void sfree(void *p) {
+    AGENT_SFREE();
     if (p == NULL) return;
     void *r = (char *)p - MEMORY_PREFIX_SIZE;
     size_t size = *(size_t *)r;
@@ -78,6 +79,7 @@ char *sstrdup(const char *str) {
 }
 
 size_t dump_used_bytes() {
-    /* todo atomic get  */
-    return used_bytes;
+    size_t res;
+    res = atomic_get(&used_bytes);
+    return res;
 }
