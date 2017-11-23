@@ -43,7 +43,6 @@
             }                                                                                   \
     }                                                                                           \
 }while(0)                                                                                 
-PHP_FUNCTION(molten_set_service_name);
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
@@ -92,7 +91,6 @@ extern sapi_module_struct sapi_module;
 
 /* Every user visible function must have an entry in trace_functions[]. */
 const zend_function_entry molten_functions[] = {
-    PHP_FE(molten_set_service_name, NULL)
     PHP_FE(molten_curl_setopt, NULL)
     PHP_FE(molten_curl_setopt_array, NULL)
     PHP_FE(molten_curl_exec, NULL)
@@ -737,27 +735,6 @@ PHP_MINFO_FUNCTION(molten)
     php_info_print_table_end();
 
     DISPLAY_INI_ENTRIES();
-}
-/* }}} */
-
-/* {{{ Ptracing set service name */
-PHP_FUNCTION(molten_set_service_name)
-{      
-#if PHP_VERSION_ID < 70000
-    char *service_name;
-    int service_name_len;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &service_name, &service_name_len) == FAILURE) {
-        RETURN_FALSE;   
-    }
-#else
-    zend_string *service_name;
-    if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &service_name) == FAILURE) {
-        RETURN_FALSE;   
-    }
-#endif
-    efree(PTG(pct).service_name);
-    PTG(pct).service_name = estrdup(MO_STR(service_name)); 
-    RETURN_TRUE;
 }
 /* }}} */
 
