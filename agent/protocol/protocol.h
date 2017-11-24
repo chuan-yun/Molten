@@ -1,6 +1,8 @@
 #ifndef __MOLTEN_AGENT_PROTOCOL_PROTOCOL_H
 #define __MOLTEN_AGENT_PROTOCOL_PROTOCOL_H
 
+#include <netinet/in.h>
+
 #include "common.h"
 #include "net_client.h"
 
@@ -15,7 +17,6 @@
 #define PROTOCOL_TIME           1
 #define PROTOCOL_HEARTBEAT      2
 #define PROTOCOL_STATUS         3
-#define PROTOCOL_
 
 /* return code */
 #define PROTOCOL_ERROR_MSG                  -1

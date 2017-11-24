@@ -3,6 +3,7 @@
 // all config in server, string not use const, alloc from heap
 m_server server;
 
+/* write pid file */
 void write_pid_file() {
     FILE *fp = fopen(server.pid_file, "w");
     if (fp) {
@@ -11,6 +12,7 @@ void write_pid_file() {
     }
 }
 
+/* daemonize */
 void daemonize() {
     int fd;
     if (fork() != 0) exit(0); //parent exit
@@ -23,6 +25,7 @@ void daemonize() {
     }
 }
 
+/* signal server stop */
 static void sig_stop_server(int sig) {
     char *msg;
     switch(sig) {
@@ -40,12 +43,14 @@ static void sig_stop_server(int sig) {
     AGENT_SLOG(SLOG_DEBUG, "[server]agent server prepare to stop");
 }
 
+/* dump server status */
 static void dump_server_status(int sig) {
     sstring status =  server_status();
     sstring_print(status);
     sstring_free(status);
 }
 
+/* signal handler */
 static void set_signal_handlers() {
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
@@ -68,6 +73,7 @@ static void set_signal_handlers() {
     //we can add debug handle for SIGSEGV
 }
 
+/* init server */
 static void server_init() {
     AGENT_SLOG(SLOG_DEBUG, "[server]agent server start prepare ...");
 
@@ -80,6 +86,13 @@ static void server_init() {
     server.prepare_stop = 0;
 
     write_pid_file();
+    
+    server.worker_num = 20;
+    server.wp = create_worker_pool(server.worker_num);
+
+    /* read from config */
+    //server.port = 12200;
+    //server.log_file = NULL;
 
     /* todo lock pid file for one instance */
 
@@ -87,24 +100,41 @@ static void server_init() {
     AGENT_SLOG(SLOG_DEBUG, "[server]agent server start ...");
 }
 
+/* server shutdwon */
 static void server_shutdown() {
+    destroy_worker_pool(server.wp);
     sfree(server.pid_file);
     AGENT_SLOG(SLOG_DEBUG, "[server]agent server stop");
 }
 
+static void server_config(int argc, char *argv[]) {
+    //struct option long_options[] = {
+    //    {"log_level",   required_argument, 0, 'l'},
+    //    {"port",        required_argument, 0, 'p'}
+    //};
+
+    //int option_index = 0;
+    //int c;
+    //while((c == getopt_long(argc, argv, "l:p:" long_options, &option_index))) {
+    //    switch(c) {
+    //        case 'l':
+    //            memcpy()
+    //            break;
+    //    }
+    //}
+     
+}
+
 // module one main thread to collect net io, other thread to execute  task
-int main() {
+// module 
+int main(int argc, char *argv[]) {
+    /* server config */   
 
     slog_init(SLOG_STDOUT, "");
     server_init();
     
-    // we need feature
-    // 1 heartbeat to sw
-    // 2 check data from molten
-    // 3 receive tracing data from molten transfer to sw
-    
     int server_fd;
-    if ((server_fd = create_tcp_listen_server("127.0.0.1", 12200, 256, AF_INET, NULL)) == A_FAIL) {
+    if ((server_fd = create_tcp_listen_server("0.0.0.0", 12200, 256, AF_INET, NULL)) == A_FAIL) {
        AGENT_SLOG(SLOG_ERROR, "[server] create tcp listen socket error");
        exit(-1);
     }

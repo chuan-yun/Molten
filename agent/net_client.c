@@ -196,6 +196,7 @@ int writer_write(writer *w, int fd) {
         }
         nwrite = write(fd, start_pos, need_write);
     }while (nwrite >= 0);
+
     
     /* success and need_write == 0 */
     if (nwrite >= 0 && need_write == 0) {
@@ -203,7 +204,7 @@ int writer_write(writer *w, int fd) {
         return RW_WRITE_FINISH;
     } else if (nwrite =-1) {
         /* other error is not forbident */
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN || errno == EINTR) {
             return RW_WRITE_CONTINUE;
         } else {
             return RW_WRITE_ERROR;

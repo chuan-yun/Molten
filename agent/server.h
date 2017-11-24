@@ -16,6 +16,7 @@
 #include "socket.h"
 #include "event.h"
 #include "event_loop.h"
+#include "worker_pool.h"
 
 #define SERVER_DEFAULT_PID_FILE "/var/run/molten_agent.pid"
 

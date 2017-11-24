@@ -11,7 +11,7 @@
 
 void write_print(int fd, char *buf, int size) {
     int echo_size;
-    char *echo = protocol_pack_req(PROTOCOL_STATUS, buf, size, &echo_size);
+    char *echo = protocol_pack_req(PROTOCOL_ECHO, buf, size, &echo_size);
     int ret = write(fd, echo, echo_size);
     if (ret != echo_size) {
         printf("write error\n");

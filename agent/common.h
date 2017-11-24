@@ -12,6 +12,7 @@
 #include "smalloc.h"
 #include "sstring.h"
 #include "trace.h"
+#include "worker_pool.h"
 
 #define AGENT_SLOG(level, format, ...)                slog_record(level, __FILE__, __LINE__, format, ##__VA_ARGS__)
 
@@ -87,7 +88,10 @@ typedef struct {
     time_t uptime;
     int active_client_num;
     int total_client_num;
-    
+
+    /* sync worker */
+    int worker_num;
+    worker_pool *wp; 
 }m_server;
 
 extern m_server server;

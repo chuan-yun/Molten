@@ -16,11 +16,11 @@ endif()
 CONFIGURE_FILE(${PROJECT_SOURCE_DIR}/config.h.in ${PROJECT_SOURCE_DIR}/config.h)
 
 SET(CMAKE_C_FLAGS "-std=gnu99")
-SET(SRC_LIST timer.c common.c socket.c protocol/protocol.c sstring.c net_client.c smalloc.c event_loop.c server.c ../common/molten_slog.c)
+SET(SRC_LIST worker_pool.c timer.c common.c socket.c protocol/protocol.c sstring.c net_client.c smalloc.c event_loop.c server.c ../common/molten_slog.c)
 SET(CLIENT_SRC_LIST socket.c protocol/message.c sstring.c net_client.c client.c smalloc.c ../common/molten_slog.c)
 
 # with debug info
-#set(CMAKE_BUILD_TYPE "Debug")
+set(CMAKE_BUILD_TYPE "Debug")
 #SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")  
 #SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")  
 

@@ -10,4 +10,6 @@
 #define atomic_get(ptr)             __sync_fetch_and_add(ptr, 0)
 #define atomic_sub(ptr, n)          __sync_fetch_and_sub(ptr, n)
 
+
+/* memory barrier */
 #endif

@@ -111,7 +111,6 @@ uint64_t execute_loop(event_loop *el) {
 
         if (el->stop == 1) break;
         
-        // todo add time trigger 
         int event_num = event_loop_implement(el, &intval);
         for(int i = 0; i < event_num; i++)  {
             net_event *ne = &el->regist_events[el->fire_events[i].fd];
@@ -213,7 +212,6 @@ void accept_net_client(event_loop *el, int fd, void *client, int mask) {
             if (errno == EINTR) {
                 continue;
             } else {
-                //todo log 
                 AGENT_SLOG(SLOG_DEBUG, "[accept] accept client error:%d\n", errno);
                 return;
             }
