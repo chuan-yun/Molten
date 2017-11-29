@@ -38,6 +38,8 @@ make && make install
 
 at `./configure` phase, you can also add `--enable-zipkin-header=yes` to support zipkin B3 header.
 
+if you want molten support `POST` method , at the compile phase you should check `libcurl-devel` is installed.
+
 # QuickStart
 
 ~~~
