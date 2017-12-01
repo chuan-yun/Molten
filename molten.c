@@ -204,6 +204,9 @@ static void molten_reload_curl_function()
     if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array") - 1)) != NULL ) {
         origin_curl_setopt_array = orig_func;
     }
+    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset") - 1)) != NULL ) {
+        origin_curl_reset = orig_func;
+    }
 #endif
 }
 /* }}} */
