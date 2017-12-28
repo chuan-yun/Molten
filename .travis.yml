@@ -2,6 +2,7 @@ language: c
 
 env:
     - MO_PHP_VERSION=7.1.2
+    - MO_PHP_VERSION=7.2.0
     - MO_PHP_VERSION=7.0.16
     - MO_PHP_VERSION=5.6.30
     - MO_PHP_VERSION=5.5.38
