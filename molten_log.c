@@ -47,6 +47,8 @@ void send_data_by_http(char *post_uri, char *post_data)
             SLOG(SLOG_INFO, " curl request code:%d", res);
             curl_easy_cleanup(curl);
             curl_slist_free_all(list);
+            //avoid unused warning
+            (void)res;
         } else {
             SLOG(SLOG_INFO, "[sink][http] init curl error");
         }
