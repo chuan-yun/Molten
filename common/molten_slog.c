@@ -58,8 +58,9 @@ void slog_record(int level, const char *file, int line, const char *fmt, ...) {
 
     strcat(log_buf, "\n");
     if (slg.type == SLOG_FILE) {
-        fprintf(slg.fp, log_buf);
+        //avoid warning with -Wformat-security
+        fprintf(slg.fp, log_buf, NULL);
     } else {
-        fprintf(stdout, log_buf);
+        fprintf(stdout, log_buf, NULL);
     }
 }

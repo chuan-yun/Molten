@@ -287,7 +287,7 @@ PHP_FUNCTION(molten_curl_exec)
     /* before */
     zval *res;
     char *span_id = NULL;
-    uint64_t entry_time;
+    uint64_t entry_time = 0;
     
     /* build span_id */
     if (PTG(pct).pch.is_sampled == 1) {
@@ -773,7 +773,7 @@ static void frame_destroy(mo_frame_t *frame)
 /* {{{ Build molten frame */
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC)
 {
-    zval **args;
+    zval **args = NULL;
     zend_function *zf;
 
     /* init */
@@ -793,7 +793,6 @@ static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char typ
     frame->level = PTG(level);
 
     /* args init */
-    args = NULL;
     frame->arg_count = 0;
     
     /* link to global stack */
