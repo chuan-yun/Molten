@@ -190,7 +190,7 @@ static void curl_multi_remove_handle_record(mo_interceptor_t *pit, mo_frame_t *f
 /* }}} */
 
 /* {{{ Build curl bannotation */
-void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, zval *handle, char *method, zend_bool check_error)
+void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, zval *handle, char *method, zend_bool check_error) 
 {
     zval func;
     zval *args[1];
@@ -235,7 +235,7 @@ void build_curl_bannotation(zval *span, long timestamp, mo_interceptor_t *pit, z
         result = mo_call_user_function(EG(function_table), (zval **)NULL, &func, &ret, 1, args);
         if (result == SUCCESS) {
             if (Z_TYPE(ret) == IS_STRING && Z_STRLEN(ret) > 0) {
-                errstr = estrdup(Z_STRVAL(ret));
+                errstr = estrdup(Z_STRVAL(ret)); 
             } else {
                 errstr = NULL;
             }
@@ -1405,6 +1405,7 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
     pit->pct = pct;
     pit->psb = psb;
 
+    
     if (extension_loaded("PDO")) {
         ADD_INTERCEPTOR_TAG(pit, PDO);
         ADD_INTERCEPTOR_TAG(pit, PDOStatement);

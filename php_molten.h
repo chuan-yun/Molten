@@ -19,6 +19,9 @@
 
 #define PHP_MOLTEN_VERSION    "0.1.2beta"
 
+extern zend_module_entry molten_module_entry;
+#define phpext_trace_ptr &molten_module_entry
+
 #ifdef PHP_WIN32
 #   define PHP_MOLTEN_API __declspec(dllexport)
 #elif defined(__GNUC__) && __GNUC__ >= 4
@@ -60,14 +63,11 @@
 #include "molten_stack.h"
 #include "php7_wrapper.h"
 
-
-extern zend_module_entry molten_module_entry;
-#define phpext_trace_ptr &molten_module_entry
-
-
 #ifndef HOST_NAME_MAX
 #define HOST_NAME_MAX 255
 #endif
+
+#define molten_php_fatal_error(level, fmt_str, ...)   php_error_docref(NULL TSRMLS_CC, level, fmt_str, ##__VA_ARGS__)
 
 PHP_MINIT_FUNCTION(molten);
 PHP_MSHUTDOWN_FUNCTION(molten);
@@ -81,7 +81,7 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
 
     long                    sampling_type;          /* sampling type */
     long                    sampling_request;       /* sampling by request one minute */
-    long                     sampling_rate;          /* tracing sampling rate */
+    long                    sampling_rate;          /* tracing sampling rate */
     char                    *chain_log_path;        /* chain log path */
     char                    *service_name;          /* service name */
     zend_bool               tracing_cli;            /* enable cli  tracing */
@@ -115,6 +115,7 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     zend_bool               enable_sapi;            /* enable_sapi */
     zend_bool               in_request;             /* determine in requeset life time */
 ZEND_END_MODULE_GLOBALS(molten)
+
 
 #ifdef ZEND_ENGINE_3
     /* Always refer to the globals in your function as TRACE_G(variable). You are

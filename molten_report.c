@@ -33,7 +33,7 @@ void mo_rep_ctor(mo_report_t *pre, long rep_interval, long report_limit)
     pre->rep_interval = rep_interval;
     pre->report_limit = report_limit;
 
-    zend_llist_init(&pre->error_list, sizeof(mo_rep_error_t), rep_error_dtor, 1);
+    zend_llist_init(&pre->error_list, sizeof(mo_rep_error_t), rep_error_dtor, 1);   
 
     /* init repi */
     /*

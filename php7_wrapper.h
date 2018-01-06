@@ -42,6 +42,10 @@
 #define mo_zend_hash_index_update   zend_hash_index_update
 #define mo_zend_hash_add            zend_hash_add
 #define mo_zend_hash_str_add_zval   zend_hash_add
+#define mo_zend_is_callable         zend_is_callable
+#define mo_zend_is_callable_ex      zend_is_callable_ex
+#define mo_copy_to_stack(a, b)
+#define mo_call_user_function_ex    call_user_function_ex
 #define MO_EX_OBJ(ex)               ex->object
 #define MO_EX_OBJ_ZVAL(ex)          ex->object
 #define MO_EX_OBJCE(ex)             Z_OBJCE_P(ex->object)
@@ -200,6 +204,11 @@ static void inline mo_php_json_encode(smart_string *s, zval *z, int options)
     ZVAL_DUP(z,p);                                      \
     convert_to_string(z);                               \
 }while(0)
+
+#define sw_copy_to_stack(a, b)                {zval *__tmp = a;\
+    a = &b;\
+    memcpy(a, __tmp, sizeof(zval));}
+
 #define MO_FREE_COPY_STRING(z)      zval_dtor(z);
 //#define MO_ARRAY_INIT(p)                array_init(p)
 #define MO_FREE_ALLOC_ZVAL(p)       efree(p)
@@ -214,6 +223,53 @@ static void inline mo_php_json_encode(smart_string *s, zval *z, int options)
 
 #define mo_zend_is_auto_global zend_is_auto_global_str
 #define mo_zend_array_count    zend_array_count
+
+static inline int mo_call_user_function_ex(HashTable *function_table, zval** object_pp, zval *function_name, zval **retval_ptr_ptr, uint32_t param_count, zval ***params, int no_separation, HashTable* ymbol_table)
+{
+    zval real_params[20];
+    int i = 0;
+    for (; i < param_count; i++)
+    {
+        real_params[i] = **params[i];
+    }
+    zval phpng_retval;
+    *retval_ptr_ptr = &phpng_retval;
+    zval *object_p = (object_pp == NULL) ? NULL : *object_pp;
+    return call_user_function_ex(function_table, object_p, function_name, &phpng_retval, param_count, real_params, no_separation, NULL);
+}
+
+static inline int mo_zend_is_callable(zval *cb, int a, char **name)
+{
+    zend_string *key = NULL;
+    int ret = zend_is_callable(cb, a, &key);
+    char *tmp = estrndup(key->val, key->len);
+    zend_string_release(key);
+    *name = tmp;
+    return ret;
+}
+
+static inline int mo_zend_is_callable_ex(zval *callable, zval *object, uint check_flags, char **callable_name, int *callable_name_len, zend_fcall_info_cache *fcc, char **error TSRMLS_DC)
+{
+    zend_string *key = NULL;
+    int ret = zend_is_callable_ex(callable, NULL, check_flags, &key, fcc, error);
+    char *tmp = estrndup(key->val, key->len);
+    zend_string_release(key);
+    *callable_name = tmp;
+    return ret;
+}
+
+static inline int mo_zend_get_constant(char *key, int len, zval *z)
+{
+    zend_string *key_str = zend_string_init(key, len, 0);
+    zval *c = zend_get_constant(key_str);
+    zend_string_free(key_str);
+    if (c != NULL) {
+        ZVAL_COPY(z,c);
+        return 1;
+    } else {
+        return 0;
+    }
+}
 
 static inline int mo_call_user_function(HashTable *ht, zval **obj, zval *function_name, zval *retval_ptr, uint32_t param_count, zval **params) 
 {

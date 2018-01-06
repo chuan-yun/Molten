@@ -53,8 +53,10 @@
 
 #include "php.h"
 #include "Zend/zend_llist.h"
+#include "molten_log.h"
 #include "molten_util.h"
 #include "php7_wrapper.h"
+#include "molten_slog.h"
 
 #ifndef PATH_MAX
 #define PATH_MAX 4096 
@@ -68,14 +70,14 @@
 #define SINK_NONE       0
 #define SINK_LOG        1
 #define SINK_STD        2
-#define SINK_SYSLOG     3       /* only for unx domain udp syslog */
+#define SINK_SYSLOG     8       /* only for unx domain udp syslog */
 
 #ifdef HAS_CURL
 #define SINK_HTTP       4
 #endif
 
 #ifdef HAS_KAFKA 
-#define SINK_KAFKA      5
+#define SINK_KAFKA      16
 #endif
 #define SINK_SOCKET     6       /* only for ipv */
 #define SPANS_WRAP      1<<0

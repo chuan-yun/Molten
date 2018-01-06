@@ -81,8 +81,8 @@ typedef struct{
     mo_sr_t     *msr;
 } mo_ctrl_t;            
 
-int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *mst, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request);
-void mo_ctrl_dtor(mo_ctrl_t *prt);
+int mo_ctrl_ctor(mo_ctrl_t *prt, mo_shm_t *mst, char *notify_uri, char *ip, long sampling_type, long sampling_rate, long sampling_request, int is_cli);
+void mo_ctrl_dtor(mo_ctrl_t *prt, int is_cli);
 void mo_ctrl_serialize_msg(mo_ctrl_t *mrt, char **buf);
 void mo_ctrl_record(mo_ctrl_t *mrt, int is_sampled);
 int mo_ctrl_update_sampling(char *rec, mo_ctrm_t *mcm);

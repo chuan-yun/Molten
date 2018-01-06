@@ -44,7 +44,7 @@
 #include "molten_log.h"
 #include "molten_util.h"
 #include "molten_chain.h"
-#include "molten_report.h"
+
 
 #define HEADER_INTERNAL_CALL        1
 #define HEADER_OUT_CALL             0
@@ -82,7 +82,7 @@ typedef struct {
    
     /* relation struct */
     struct mo_chain_st *pct;
-    mo_span_builder    *psb;
+    mo_span_builder    *psb; 
 }mo_interceptor_t;
 
 
