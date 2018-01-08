@@ -566,8 +566,6 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
-	STD_PHP_INI_ENTRY("molten.socket_host",           "127.0.0.1",    PHP_INI_SYSTEM, OnUpdateString, socket_host, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.socket_port",           "9981",         PHP_INI_SYSTEM, OnUpdateLong, socket_port, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
@@ -645,7 +643,7 @@ PHP_MINIT_FUNCTION(molten)
     mo_shm_ctor(&PTG(msm));   
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request), PTG(pct).is_cli);
     mo_span_ctor(&PTG(psb), PTG(span_format));
-    mo_chain_log_ctor(&PTG(pcl), PTG(socket_host), PTG(socket_port), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
+    mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
     mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
 

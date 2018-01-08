@@ -34,24 +34,6 @@ extern zend_module_entry molten_module_entry;
 #include "TSRM.h"
 #endif
 
-#include "php.h"
-#include "php_ini.h"
-#include "php_globals.h"
-#include "php_main.h"
-
-#include "php_streams.h"
-#include "php_network.h"
-
-#include "zend_interfaces.h"
-#include "zend_exceptions.h"
-#include "zend_variables.h"
-#include <stddef.h>
-#include <ext/date/php_date.h>
-#include <ext/standard/url.h>
-#include <ext/standard/info.h>
-#include <ext/standard/php_array.h>
-#include <ext/standard/basic_functions.h>
-
 #include "molten_chain.h"
 #include "molten_intercept.h"
 #include "molten_span.h"
@@ -88,8 +70,6 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     char                    *span_format;           /* the span format */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
-    char                    *socket_host;           /* report socket host */
-    int                     socket_port;            /* report socket port */
     char                    *notify_uri;            /* notify uri */
     long                    sink_type;              /* log sink type */
     long                    output_type;            /* sink spans output type */

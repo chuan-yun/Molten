@@ -58,7 +58,7 @@ class Report
 	function onFlush($data)
 	{		
 		$this->client->send(json_encode($data));
-	}
+	}	
 	
 	function run()
 	{
