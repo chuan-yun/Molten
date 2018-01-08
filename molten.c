@@ -565,7 +565,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_rate",         "100",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
@@ -865,7 +865,7 @@ static PHP_METHOD(molten, on)
         zend_update_property(molten_class_entry_ptr, getThis(), property, property_length, cb TSRMLS_CC);
         molten_callbacks[i] = mo_zend_read_property(molten_class_entry_ptr, getThis(), property, property_length, 0 TSRMLS_CC);
         molten_caches[i] = func_cache;
-//        mo_copy_to_stack(molten_callbacks[i], _molten_callbacks[i]);
+        mo_copy_to_stack(molten_callbacks[i], _molten_callbacks[i]);
     }
 
     if (property_length == 0)
