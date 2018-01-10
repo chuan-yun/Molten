@@ -205,7 +205,7 @@ static void inline mo_php_json_encode(smart_string *s, zval *z, int options)
     convert_to_string(z);                               \
 }while(0)
 
-#define sw_copy_to_stack(a, b)                {zval *__tmp = a;\
+#define mo_copy_to_stack(a, b)                {zval *__tmp = a;\
     a = &b;\
     memcpy(a, __tmp, sizeof(zval));}
 
