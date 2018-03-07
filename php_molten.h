@@ -70,6 +70,8 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     char                    *span_format;           /* the span format */
     long                    report_interval;        /* call ctrl interval */
     long                    report_limit;           /* report limit */
+    char                    *socket_host;           /* report socket host */
+    int                     socket_port;            /* report socket port */
     char                    *notify_uri;            /* notify uri */
     long                    sink_type;              /* log sink type */
     long                    output_type;            /* sink spans output type */

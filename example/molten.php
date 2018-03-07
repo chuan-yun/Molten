@@ -39,13 +39,20 @@ class Report
 	
 	function __construct()
 	{		
+// 		$client = new \swoole_client(SWOOLE_SOCK_TCP);
+// 		$client->set(array('open_eof_check' => true, 'package_eof' => self::EOF));
 		$client = new \swoole_client(SWOOLE_SOCK_TCP);
-		$client->set(array('open_eof_check' => true, 'package_eof' => self::EOF));
-		$res = $client->connect("127.0.0.1", 9503);
+		$client->set([
+				'open_length_check' => true,
+				'package_length_type' => 'N',
+				'package_length_offset' => 0,       //第N个字节是包长度的值
+				'package_body_offset' => 4,       //第几个字节开始计算长度
+				'package_max_length' => 2000000,  //协议最大长度
+		]);
+		$res = $client->connect("127.0.0.1", 9981);
 		if ($res) {
 			echo "connect success\n";
 			$this->client = $client;
-			$this->client->send("connect success\n");
 		} else {
 			exit("connect error");
 		}
@@ -57,7 +64,9 @@ class Report
 	
 	function onFlush($data)
 	{		
-		$this->client->send(json_encode($data));
+		$_send_data= json_encode($data);
+		$send = pack('N', strlen($_send_data)) . $_send_data;
+		$this->client->send($send);
 	}	
 	
 	function run()

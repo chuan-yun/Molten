@@ -55,7 +55,7 @@ static PHP_METHOD(molten, __construct);
 static PHP_METHOD(molten, __destruct);
 static PHP_METHOD(molten, on);
 static PHP_METHOD(molten, addSpans);
-static PHP_METHOD(molten, getTraceHeader);
+static PHP_METHOD(molten, addTraceHeader);
 static PHP_METHOD(molten, flush);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
@@ -141,7 +141,7 @@ static zend_function_entry molten_methods[] = {
     PHP_ME(molten, __destruct, arginfo_void, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
     PHP_ME(molten, on,        arginfo_molten_on, ZEND_ACC_PUBLIC)
     PHP_ME(molten, addSpans,  arginfo_molten_add_spans, ZEND_ACC_PUBLIC)
-    PHP_ME(molten, getTraceHeader,arginfo_molten_header, ZEND_ACC_PUBLIC)
+    PHP_ME(molten, addTraceHeader,arginfo_molten_header, ZEND_ACC_PUBLIC)
     PHP_ME(molten, flush, arginfo_void, ZEND_ACC_PUBLIC | ZEND_ACC_DTOR)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
@@ -559,21 +559,23 @@ ZEND_GET_MODULE(molten)
 
 /* PHP_INI */
 PHP_INI_BEGIN()
-    STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_SYSTEM, OnUpdateBool, enable, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_ALL, OnUpdateBool, enable, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_log_path",       DEFAULT_LOG_DIR,  PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL, molten_update_service_name, service_name, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_rate",         "100",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_ALL, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_type",         "1",            PHP_INI_ALL, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",         PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_rate",         "100",          PHP_INI_ALL, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.socket_host",           "127.0.0.1",    PHP_INI_ALL, OnUpdateString, socket_host, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.socket_port",           "9981",         PHP_INI_ALL, OnUpdateLong, socket_port, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.notify_uri",            "",             PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_ALL, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_SYSTEM, OnUpdateString, sink_http_uri, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",             PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",           PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_brokers",    "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_brokers, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
 PHP_INI_END()
@@ -640,10 +642,10 @@ PHP_MINIT_FUNCTION(molten)
 
     /* module ctor */
     mo_obtain_local_ip(PTG(ip));
-    mo_shm_ctor(&PTG(msm));   
+    mo_shm_ctor(&PTG(msm));
     mo_ctrl_ctor(&PTG(prt), &PTG(msm), PTG(notify_uri), PTG(ip), PTG(sampling_type), PTG(sampling_rate), PTG(sampling_request), PTG(pct).is_cli);
     mo_span_ctor(&PTG(psb), PTG(span_format));
-    mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
+    mo_chain_log_ctor(&PTG(pcl), PTG(socket_host), PTG(socket_port), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
     mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
 
@@ -891,7 +893,7 @@ static PHP_METHOD(molten, addSpans)
     RETURN_TRUE;
 }
 
-static PHP_METHOD(molten, getTraceHeader)
+static PHP_METHOD(molten, addTraceHeader)
 {
     zval *span;
     char *span_id = NULL;
@@ -908,7 +910,6 @@ static PHP_METHOD(molten, getTraceHeader)
         uint64_t start_time = mo_time_usec();
         retrieve_span_id(&PTG(span_stack), &span_id);
         retrieve_parent_span_id(&PTG(span_stack), &parent_span_id);
-
         PTG(psb).start_span(&span, service_name, PTG(pct).pch.trace_id->val, span_id, parent_span_id, start_time, 0, &PTG(pct), AN_CLIENT);
         pop_span_context(&PTG(span_stack));
         RETURN_ZVAL(span, 0, 0);
@@ -924,26 +925,29 @@ static PHP_METHOD(molten, flush)
         zval **args[1];
         zval *retval = NULL;
         mo_chain_log_t *log = &PTG(pcl);
-        zval *data = log->spans;
-        args[0] = &data;
-
-        if (mo_call_user_function_ex(EG(function_table), NULL, molten_callbacks[ME_CB_onFlush], &retval, 1, args, 0, NULL TSRMLS_CC) == FAILURE)
-        {
-            molten_php_fatal_error(E_WARNING, "onFlush handler error.");
+        //span can not empty
+        if (log->spans != NULL) {
+            zval *data = log->spans;
+            args[0] = &data;
+            if (mo_call_user_function_ex(EG(function_table), NULL, molten_callbacks[ME_CB_onFlush], &retval, 1, args, 0, NULL TSRMLS_CC) == FAILURE)
+            {
+                molten_php_fatal_error(E_WARNING, "onFlush handler error.");
+            }
+            if (EG(exception))
+            {
+                zend_exception_error(EG(exception), E_ERROR TSRMLS_CC);
+            }
+            mo_zval_ptr_dtor(&log->spans);
+            MO_FREE_ALLOC_ZVAL(log->spans);
+            log->spans = NULL;
+            //for next request
+            MO_ALLOC_INIT_ZVAL(log->spans);
+            array_init(log->spans);
+            if (retval != NULL)
+            {
+                mo_zval_ptr_dtor(&retval);
+            }
         }
-        if (EG(exception))
-        {
-            zend_exception_error(EG(exception), E_ERROR TSRMLS_CC);
-        }
-        mo_zval_ptr_dtor(&log->spans);
-        MO_FREE_ALLOC_ZVAL(log->spans);
-        log->spans = NULL;
-        if (retval != NULL)
-        {
-            mo_zval_ptr_dtor(&retval);
-        }
-    } else {
-
     }
 }
 
@@ -1211,7 +1215,7 @@ ZEND_API void mo_execute_core(int internal, zend_execute_data *execute_data, zva
         frame_build(&frame, internal, MO_FRAME_ENTRY, caller, execute_data, NULL TSRMLS_CC);
 #endif
         /* run capture */
-        i_ele->capture != NULL ? i_ele->capture(&PTG(pit), &frame) : NULL;  
+        i_ele->capture != NULL ? i_ele->capture(&PTG(pit), &frame) : NULL;
 
         /* Register return value ptr */
 #if PHP_VERSION_ID < 70000

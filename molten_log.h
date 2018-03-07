@@ -34,6 +34,8 @@
 #include <fcntl.h>
 #include <time.h>
 #include <sys/types.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 # if defined(__linux__)
 #include <linux/limits.h>
@@ -67,6 +69,7 @@
 #define SINK_NONE       0
 #define SINK_LOG        1
 #define SINK_STD        2
+#define SINK_SOCKET     6       /* only for ipv4 */
 #define SINK_SYSLOG     8       /* only for unx domain udp syslog */
 
 #ifdef HAS_CURL
@@ -117,6 +120,15 @@ typedef struct {
     int sfd;                    /* unix domain syslog fd */
     struct sockaddr_un server;  /* server addr */
 
+    /* socket tcp */
+    char *host;
+    int port;
+    struct sockaddr_in inet_v4;
+    socklen_t socklen; //socket len
+    int socket;   //fd
+    int socket_active;
+    double timeout;
+
     /* sink http */
     char *post_uri;             /* post uri */
 
@@ -132,7 +144,7 @@ typedef struct {
 
 /* function */
 void mo_chain_log_init(mo_chain_log_t *log);
-void mo_chain_log_ctor(mo_chain_log_t *log, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
+void mo_chain_log_ctor(mo_chain_log_t *log, char *host, int port, char *host_name, char *log_path, long sink_type, long output_type, char *post_uri, char *syslog_unix_socket);
 int mo_chain_log_set_file_path(char *new_path);
 void mo_chain_log_add(mo_chain_log_t *log, char *buf, size_t size);
 void mo_chain_log_flush(mo_chain_log_t *log);

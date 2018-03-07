@@ -288,19 +288,6 @@ static inline zval *mo_zend_read_property(zend_class_entry *class_ptr, zval *obj
     return zend_read_property(class_ptr, obj, s, len, silent, &rv);
 }
 
-static inline int mo_zend_get_constant(char *key, int len, zval *z)
-{
-    zend_string *key_str = zend_string_init(key, len, 0);
-    zval *c = zend_get_constant(key_str); 
-    zend_string_free(key_str);
-    if (c != NULL) {
-        ZVAL_COPY(z,c);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
 static inline void mo_array_merge(zval *dest, zval *src TSRMLS_DC) 
 {
     php_array_merge_recursive(Z_ARRVAL_P(dest), Z_ARRVAL_P(src));  
