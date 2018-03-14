@@ -149,7 +149,7 @@ static void molten_reload_curl_function()
     zend_function *orig, *replace;
     const mo_reload_def *p = &(prd[0]);
     while(p->orig_func != NULL) {
-        if (zend_hash_find(CG(function_table), p->save_func, strlen(p->orig_func) + 1, (void **)&orig) != SUCCESS) {
+        if (zend_hash_find(CG(function_table), p->save_func, strlen(p->save_func) + 1, (void **)&orig) != SUCCESS) {
             zend_hash_find(CG(function_table), p->over_func, strlen(p->over_func) + 1, (void **)&replace);
             if (zend_hash_find(CG(function_table), p->orig_func, strlen(p->orig_func) + 1, (void **)&orig) == SUCCESS) {
                 zend_hash_add(CG(function_table), p->save_func, strlen(p->save_func)+1, orig, sizeof(zend_function), NULL);
@@ -162,7 +162,7 @@ static void molten_reload_curl_function()
     zend_function *orig, *replace;
     const mo_reload_def *p = &(prd[0]);
     while(p->orig_func != NULL) {
-        if (zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->orig_func)) == NULL) {
+        if (zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->save_func)) == NULL) {
             replace = zend_hash_str_find_ptr(CG(function_table), p->over_func, strlen(p->over_func));
             if ((orig = zend_hash_str_find_ptr(CG(function_table), p->orig_func, strlen(p->orig_func))) != NULL) {
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
