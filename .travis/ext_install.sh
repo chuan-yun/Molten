@@ -9,9 +9,16 @@ PHP_CONF=$PHP_PATH/bin/php-config
 
 MO_EX_DIR=`$PHP_BIN -i|grep extension_dir|grep debug|awk -F'=>' '{print $2}'`
 ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors redis
-ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
 
 PHP_MAJOR=`echo $PHP_VERSION|cut -d'.' -f1`
+PHP_MINOR=`echo $PHP_VERSION|cut -d'.' -f2`
+
+#different version mongodb
+if [ "$PHP_MAJOR" -eq "5" ] && [ "$PHP_MINOR" -eq "4" ];then
+	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb-1.3.4
+else
+	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
+fi
 
 if [ "$PHP_MAJOR" -eq "7" ] ;then
 #ls -a $MO_EX_DIR |grep memcached || printf "\n" | $PHP_PECL install -f --ignore-errors memcached-3.0.2
