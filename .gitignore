@@ -84,3 +84,6 @@ tests/tmplog
 tests/*.mem
 tests/vendor
 tests/composer.lock
+
+#IDE
+.idea

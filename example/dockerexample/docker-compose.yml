@@ -1,0 +1,18 @@
+version: "2"
+services:
+  php:
+    build: .
+    volumes:
+      - ./:/var/www
+      - ./docker-php-ext-molten.ini:/usr/local/etc/php/conf.d/docker-php-ext-molten.ini
+    restart: always
+  nginx:
+    image: nginx
+    links:
+      - php
+    volumes:
+      - ./:/var/www
+      - .//http.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - 10400:80
+    restart: always
