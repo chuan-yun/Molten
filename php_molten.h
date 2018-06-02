@@ -59,39 +59,40 @@ ZEND_BEGIN_MODULE_GLOBALS(molten)
     zend_bool               enable;
     int                     level;
 
-    long                    sampling_type;          /* sampling type */
-    long                    sampling_request;       /* sampling by request one minute */
-    long                    sampling_rate;          /* tracing sampling rate */
-    char                    *chain_log_path;        /* chain log path */
-    char                    *service_name;          /* service name */
-    zend_bool               tracing_cli;            /* enable cli  tracing */
-    char                    *span_format;           /* the span format */
-    long                    report_interval;        /* call ctrl interval */
-    long                    report_limit;           /* report limit */
-    char                    *notify_uri;            /* notify uri */
-    long                    sink_type;              /* log sink type */
-    long                    output_type;            /* sink spans output type */
-    char                    *sink_http_uri;         /* sink http uri */
-    char                    *sink_kafka_brokers;    /* sink kafka brokers */
-    char                    *sink_kafka_topic;      /* sink kafka topic */
-    char                    *sink_syslog_unix_socket; /* sink syslog unix */
-    smart_string            request_uri;            /* request url */
+    long                    sampling_type;              /* sampling type */
+    long                    sampling_request;           /* sampling by request one minute */
+    long                    sampling_rate;              /* tracing sampling rate */
+    char                    *chain_log_path;            /* chain log path */
+    char                    *service_name;              /* service name */
+    zend_bool               tracing_cli;                /* enable cli  tracing */
+    char                    *span_format;               /* the span format */
+    zend_bool               open_report;                /* open report switch */
+    long                    report_interval;            /* call ctrl interval */
+    long                    report_limit;               /* report limit */
+    char                    *notify_uri;                /* notify uri */
+    long                    sink_type;                  /* log sink type */
+    long                    output_type;                /* sink spans output type */
+    char                    *sink_http_uri;             /* sink http uri */
+    char                    *sink_kafka_brokers;        /* sink kafka brokers */
+    char                    *sink_kafka_topic;          /* sink kafka topic */
+    char                    *sink_syslog_unix_socket;   /* sink syslog unix */
+    smart_string            request_uri;                /* request url */
 
-    mo_chain_t              pct;                    /* chain module */
-    mo_interceptor_t        pit;                    /* intercept module */
-    mo_chain_log_t          pcl;                    /* log module */
-    mo_span_builder         psb;                    /* span builder */
-    mo_ctrl_t               prt;                    /* control module */
-    mo_report_t             pre;                    /* report module */
-    mo_shm_t                msm;                    /* shm module */
+    mo_chain_t              pct;                        /* chain module */
+    mo_interceptor_t        pit;                        /* intercept module */
+    mo_chain_log_t          pcl;                        /* log module */
+    mo_span_builder         psb;                        /* span builder */
+    mo_ctrl_t               prt;                        /* control module */
+    mo_report_t             pre;                        /* report module */
+    mo_shm_t                msm;                        /* shm module */
 
-    mo_stack                span_stack;             /* span stack */
+    mo_stack                span_stack;                 /* span stack */
 
-    char                    ip[INET_ADDRSTRLEN];    /* device ip */
+    char                    ip[INET_ADDRSTRLEN];        /* device ip */
     char                    host_name[HOST_NAME_MAX];   /* host name */
-    long                    execute_begin_time;     /* execute begin time */
-    zend_bool               enable_sapi;            /* enable_sapi */
-    zend_bool               in_request;             /* determine in requeset life time */
+    long                    execute_begin_time;         /* execute begin time */
+    zend_bool               enable_sapi;                /* enable_sapi */
+    zend_bool               in_request;                 /* determine in requeset life time */
 ZEND_END_MODULE_GLOBALS(molten)
 
 
