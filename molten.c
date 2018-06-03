@@ -510,19 +510,20 @@ ZEND_GET_MODULE(molten)
 PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.enable",                "1",            PHP_INI_SYSTEM, OnUpdateBool, enable, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_log_path",       DEFAULT_LOG_DIR,  PHP_INI_SYSTEM, OnUpdateString, chain_log_path, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL, molten_update_service_name, service_name, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.service_name",          "default",      PHP_INI_ALL,    molten_update_service_name, service_name, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.tracing_cli",           "0",            PHP_INI_SYSTEM, OnUpdateLong, tracing_cli, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_type",         "1", PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",           PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_type",         "1",            PHP_INI_SYSTEM, OnUpdateLong, sampling_type, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sampling_request",      "1000",         PHP_INI_SYSTEM, OnUpdateLong, sampling_request, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sampling_rate",         "64",           PHP_INI_SYSTEM, OnUpdateLong, sampling_rate, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.span_format",           "zipkin",       PHP_INI_SYSTEM, OnUpdateString, span_format, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_interval",       "60",           PHP_INI_SYSTEM, OnUpdateLong, report_interval, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.notify_uri",       "",           PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.notify_uri",            "",             PHP_INI_SYSTEM, OnUpdateString, notify_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.open_report",           "0",            PHP_INI_SYSTEM, OnUpdateLong, open_report, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_SYSTEM, OnUpdateString, sink_http_uri, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",             PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",           PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_brokers",    "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_brokers, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
 PHP_INI_END()
@@ -567,10 +568,6 @@ PHP_MINIT_FUNCTION(molten)
     /* Overload function */
     molten_reload_curl_function();
 
-    /* Replace error call back */
-    trace_original_error_cb = zend_error_cb;
-    zend_error_cb = molten_error_cb;
-    
     /* Set common data */
     /* http request */
     PTG(pct).sapi = sapi_module.name;
@@ -591,7 +588,13 @@ PHP_MINIT_FUNCTION(molten)
     mo_span_ctor(&PTG(psb), PTG(span_format));
     mo_chain_log_ctor(&PTG(pcl), PTG(host_name), PTG(chain_log_path), PTG(sink_type), PTG(output_type), PTG(sink_http_uri), PTG(sink_syslog_unix_socket));
     mo_intercept_ctor(&PTG(pit), &PTG(pct), &PTG(psb));
-    mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
+
+    if (PTG(open_report) == 1) {
+        /* Replace error call back */
+        trace_original_error_cb = zend_error_cb;
+        zend_error_cb = molten_error_cb;
+        mo_rep_ctor(&PTG(pre), PTG(report_interval), PTG(report_limit));
+    }
 
     return SUCCESS;
 }
@@ -617,8 +620,6 @@ PHP_MSHUTDOWN_FUNCTION(molten)
 #endif
     zend_execute_internal = ori_execute_internal;
 
-    zend_error_cb = trace_original_error_cb;
-
     /* Clear overload function */
     molten_clear_reload_function();
     
@@ -627,7 +628,10 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     mo_ctrl_dtor(&PTG(prt), PTG(pct).is_cli);
     mo_chain_log_dtor(&PTG(pcl));
     mo_intercept_dtor(&PTG(pit));
-    mo_rep_dtor(&PTG(pre));
+    if (PTG(open_report) == 1) {
+        zend_error_cb = trace_original_error_cb;
+        mo_rep_dtor(&PTG(pre));
+    }
 
     SLOG(SLOG_INFO, "molten module shutdown");
 
@@ -717,7 +721,9 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     mo_ctrl_record(&PTG(prt), PTG(pct).pch.is_sampled);
 
     /* Report some info*/
-    mo_rep_record_data(&PTG(pre), PTG(prt).mri, &PTG(pcl), &PTG(request_uri), PTG(pct).pch.is_sampled, PTG(execute_begin_time));
+    if (PTG(open_report) == 1) {
+        mo_rep_record_data(&PTG(pre), PTG(prt).mri, &PTG(pcl), &PTG(request_uri), PTG(pct).pch.is_sampled, PTG(execute_begin_time));
+    }
 
     /* Uninit intercept module */
     mo_intercept_uninit(&PTG(pit));

@@ -65,7 +65,9 @@ it is cool, alright?
 
 `molten.service_name` is to set service name for label app service name.
 
-`molten.tracing_cli` set 1 to trace, cli sapi, 0 not trace, just use for trace unit test, default `0`.
+`molten.tracing_cli` set `1` to trace, cli sapi, `0` not trace, just use for trace unit test, default `0`.
+
+`molten.open_report` set `1` to open report php error, default `0`.
 
 ## Sampling Config
 

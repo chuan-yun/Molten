@@ -9,6 +9,7 @@ molten.sink_type=2
 molten.output_type=2
 molten.service_name=test
 molten.sampling_rate=1
+molten.open_report=1
 --FILE--
 <?php
 include 'config.inc';

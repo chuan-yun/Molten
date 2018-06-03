@@ -10,6 +10,7 @@ molten.output_type=2
 molten.service_name=test
 molten.sampling_rate=1
 molten.span_format=opentracing
+molten.open_report=1
 --FILE--
 <?php
 include 'config.inc';
