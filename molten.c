@@ -142,6 +142,12 @@ zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
 /* }}} */
 
+#if PHP_VERSION_ID < 70200
+#define FUNCTION_TABLE CG(function_table)
+#else
+#define FUNCTION_TABLE EG(function_table)
+#endif
+
 /* {{{ molten reload curl function for performance */
 static void molten_reload_curl_function()
 {
@@ -149,11 +155,11 @@ static void molten_reload_curl_function()
     zend_function *orig, *replace;
     const mo_reload_def *p = &(prd[0]);
     while(p->orig_func != NULL) {
-        if (zend_hash_find(CG(function_table), p->save_func, strlen(p->orig_func) + 1, (void **)&orig) != SUCCESS) {
-            zend_hash_find(CG(function_table), p->over_func, strlen(p->over_func) + 1, (void **)&replace);
-            if (zend_hash_find(CG(function_table), p->orig_func, strlen(p->orig_func) + 1, (void **)&orig) == SUCCESS) {
-                zend_hash_add(CG(function_table), p->save_func, strlen(p->save_func)+1, orig, sizeof(zend_function), NULL);
-                zend_hash_update(CG(function_table), p->orig_func, strlen(p->orig_func) + 1, replace, sizeof(zend_function), NULL);
+        if (zend_hash_find(FUNCITON_TABLE, p->save_func, strlen(p->orig_func) + 1, (void **)&orig) != SUCCESS) {
+            zend_hash_find(FUNCTION_TABLE, p->over_func, strlen(p->over_func) + 1, (void **)&replace);
+            if (zend_hash_find(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func) + 1, (void **)&orig) == SUCCESS) {
+                zend_hash_add(FUNCTION_TABLE, p->save_func, strlen(p->save_func)+1, orig, sizeof(zend_function), NULL);
+                zend_hash_update(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func) + 1, replace, sizeof(zend_function), NULL);
             }
         }
         p++;
@@ -162,13 +168,13 @@ static void molten_reload_curl_function()
     zend_function *orig, *replace;
     const mo_reload_def *p = &(prd[0]);
     while(p->orig_func != NULL) {
-        if (zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->orig_func)) == NULL) {
-            replace = zend_hash_str_find_ptr(CG(function_table), p->over_func, strlen(p->over_func));
-            if ((orig = zend_hash_str_find_ptr(CG(function_table), p->orig_func, strlen(p->orig_func))) != NULL) {
+        if (zend_hash_str_find_ptr(FUNCTION_TABLE, p->save_func, strlen(p->orig_func)) == NULL) {
+            replace = zend_hash_str_find_ptr(FUNCTION_TABLE, p->over_func, strlen(p->over_func));
+            if ((orig = zend_hash_str_find_ptr(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func))) != NULL) {
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
-                    zend_hash_str_add_mem(CG(function_table), p->save_func, strlen(p->save_func), orig, sizeof(zend_internal_function));
+                    zend_hash_str_add_mem(FUNCTION_TABLE, p->save_func, strlen(p->save_func), orig, sizeof(zend_internal_function));
                     function_add_ref(orig);
-                    zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), replace, sizeof(zend_internal_function));
+                    zend_hash_str_update_mem(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func), replace, sizeof(zend_internal_function));
                     function_add_ref(replace);
                 }
             }
@@ -181,30 +187,30 @@ static void molten_reload_curl_function()
     /* retrieve function from function table */
 #if PHP_MAJOR_VERSION < 7
     zend_function *orig_func;
-    if (zend_hash_find(CG(function_table), "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt"), (void **)&orig_func) == SUCCESS ) {
+    if (zend_hash_find(FUNCTION_TABLE, "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt"), (void **)&orig_func) == SUCCESS ) {
         origin_curl_setopt = orig_func;
     }
-    if (zend_hash_find(CG(function_table), "origin_molten_curl_exec", sizeof("origin_molten_curl_exec"), (void **)&orig_func) == SUCCESS ) {
+    if (zend_hash_find(FUNCTION_TABLE, "origin_molten_curl_exec", sizeof("origin_molten_curl_exec"), (void **)&orig_func) == SUCCESS ) {
         origin_curl_exec = orig_func;
     }
-    if (zend_hash_find(CG(function_table), "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array"), (void **)&orig_func) == SUCCESS ) {
+    if (zend_hash_find(FUNCTION_TABLE, "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array"), (void **)&orig_func) == SUCCESS ) {
         origin_curl_setopt_array = orig_func;
     }
-    if (zend_hash_find(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset"), (void **)&orig_func) == SUCCESS ) {
+    if (zend_hash_find(FUNCTION_TABLE, "origin_molten_curl_reset", sizeof("origin_molten_curl_reset"), (void **)&orig_func) == SUCCESS ) {
         origin_curl_reset = orig_func;
     }
 #else
     zend_function *orig_func;
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt") - 1)) != NULL) {
+    if ((orig_func = zend_hash_str_find_ptr(FUNCTION_TABLE, "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt") - 1)) != NULL) {
         origin_curl_setopt = orig_func;
     }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_exec", sizeof("origin_molten_curl_exec") - 1)) != NULL) {
+    if ((orig_func = zend_hash_str_find_ptr(FUNCTION_TABLE, "origin_molten_curl_exec", sizeof("origin_molten_curl_exec") - 1)) != NULL) {
         origin_curl_exec = orig_func;
     }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array") - 1)) != NULL ) {
+    if ((orig_func = zend_hash_str_find_ptr(FUNCTION_TABLE, "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array") - 1)) != NULL ) {
         origin_curl_setopt_array = orig_func;
     }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset") - 1)) != NULL ) {
+    if ((orig_func = zend_hash_str_find_ptr(FUNCTION_TABLE, "origin_molten_curl_reset", sizeof("origin_molten_curl_reset") - 1)) != NULL ) {
         origin_curl_reset = orig_func;
     }
 #endif
@@ -219,19 +225,19 @@ static void molten_clear_reload_function()
 #if PHP_MAJOR_VERSION < 7
     zend_function *orig;
     while (p->orig_func != NULL) {
-        if (zend_hash_find(CG(function_table), p->save_func, strlen(p->save_func)+1, (void **)&orig) == SUCCESS) {
-              zend_hash_update(CG(function_table), p->orig_func, strlen(p->orig_func)+1, orig, sizeof(zend_function), NULL);
-              zend_hash_del(CG(function_table), p->save_func, strlen(p->save_func)+1); 
+        if (zend_hash_find(FUNCTION_TABLE, p->save_func, strlen(p->save_func)+1, (void **)&orig) == SUCCESS) {
+              zend_hash_update(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func)+1, orig, sizeof(zend_function), NULL);
+              zend_hash_del(FUNCTION_TABLE, p->save_func, strlen(p->save_func)+1); 
          }
         p++;
     }
 #else
     zend_function *orig;
     while (p->orig_func != NULL) {
-        if ((orig = zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->save_func))) != NULL) {
-              zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), orig, sizeof(zend_internal_function));
+        if ((orig = zend_hash_str_find_ptr(FUNCTION_TABLE, p->save_func, strlen(p->save_func))) != NULL) {
+              zend_hash_str_update_mem(FUNCTION_TABLE, p->orig_func, strlen(p->orig_func), orig, sizeof(zend_internal_function));
               function_add_ref(orig);
-              zend_hash_str_del(CG(function_table), p->save_func, strlen(p->save_func)); 
+              zend_hash_str_del(FUNCTION_TABLE, p->save_func, strlen(p->save_func)); 
          }
         p++;
     }
@@ -566,7 +572,9 @@ PHP_MINIT_FUNCTION(molten)
     zend_execute_internal = mo_execute_internal;
 
     /* Overload function */
+#if PHP_VERSION_ID < 70200
     molten_reload_curl_function();
+#endif
 
     /* Set common data */
     /* http request */
@@ -621,7 +629,9 @@ PHP_MSHUTDOWN_FUNCTION(molten)
     zend_execute_internal = ori_execute_internal;
 
     /* Clear overload function */
-    molten_clear_reload_function();
+#if PHP_VERSION_ID < 70200
+   molten_clear_reload_function();
+#endif
     
     /* module dtor */
     mo_shm_dtor(&PTG(msm));   
@@ -661,7 +671,12 @@ PHP_RINIT_FUNCTION(molten)
 
     /* Set in request life time */
     PTG(in_request) = 1;
-    
+
+#if PHP_VERSION_ID >= 70200
+    molten_reload_curl_function();
+#endif
+
+
     /* execute begin time */
     PTG(execute_begin_time) = (long) SG(global_request_time) * 1000000;
 
@@ -707,6 +722,10 @@ PHP_RSHUTDOWN_FUNCTION(molten)
     /* dtor tracing basic info */
     /* Set out request life time */
     PTG(in_request) = 0;
+
+#if PHP_VERSION_ID >= 70200
+   molten_clear_reload_function();
+#endif
     
     /* Chain dtor */
     mo_chain_dtor(&PTG(pct), &PTG(psb), &PTG(span_stack));
