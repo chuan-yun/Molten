@@ -31,3 +31,7 @@ ab -n 2560 -c 20 http://demo_server_ip:10400/
 ### 查看调用链
 
 访问 http://zipkin_server_id:9411 就可以了.
+
+### 参考
+
+详细配置请访问 https://github.com/jiangjianyong/Molten/blob/master/README_ZH.md
