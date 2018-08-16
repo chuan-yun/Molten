@@ -45,7 +45,7 @@
 }while(0)                                                                                 
 #define ARG_INFO_COPY_FUNCTION  "curl_setopt_array"
 
-PHP_FUNCTION(molten_set_service_name);
+
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
@@ -145,10 +145,9 @@ zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
 /* }}} */
 
+/* {{{ copy function->common->arg_info to bak*/
 zend_arg_info *curl_setopt_array_arg_info_bak;
 
-
-/* {{{ copy function->common->arg_info to bak*/
 static int zend_internal_function_arg_info_copy(zend_function *function)
 {
     uint32_t num_args = function->common.num_args + 1;
