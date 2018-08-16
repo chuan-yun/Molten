@@ -43,6 +43,9 @@
             }                                                                                   \
     }                                                                                           \
 }while(0)                                                                                 
+#define ARG_INFO_COPY_FUNCTION  "curl_setopt_array"
+
+PHP_FUNCTION(molten_set_service_name);
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
@@ -142,6 +145,33 @@ zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
 /* }}} */
 
+zend_arg_info *curl_setopt_array_arg_info_bak;
+
+
+/* {{{ copy function->common->arg_info to bak*/
+static int zend_internal_function_arg_info_copy(zend_function *function)
+{
+    uint32_t num_args = function->common.num_args + 1;
+    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
+    memcpy(dest, function->common.arg_info-1, sizeof(zend_arg_info) * num_args);
+    curl_setopt_array_arg_info_bak = dest+1;
+    return (curl_setopt_array_arg_info_bak)? 1:0;
+
+}
+/* }}} */
+
+/* {{{ recovery  function->common->arg_info from bak*/
+static int zend_internal_function_arg_info_recovery(zend_function *function)
+{
+    uint32_t num_args = function->common.num_args + 1;
+    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
+    memcpy(dest, curl_setopt_array_arg_info_bak-1, sizeof(zend_arg_info) * num_args);
+    function->common.arg_info = dest+1;
+    return (function->common.arg_info)? 1:0;
+
+}
+/* }}} */
+
 /* {{{ molten reload curl function for performance */
 static void molten_reload_curl_function()
 {
@@ -168,9 +198,11 @@ static void molten_reload_curl_function()
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
                     zend_hash_str_add_mem(CG(function_table), p->save_func, strlen(p->save_func), orig, sizeof(zend_internal_function));
                     function_add_ref(orig);
-                    if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
-                        zend_internal_function_arg_info_copy(orig);
-                    }
+                    #if PHP_VERSION_ID > 70200
+                        if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
+                            zend_internal_function_arg_info_copy(orig);
+                        }
+                    #endif
                     zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), replace, sizeof(zend_internal_function));
                     function_add_ref(replace);
                 }
@@ -234,16 +266,20 @@ static void molten_clear_reload_function()
         if ((orig = zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->save_func))) != NULL) {
               zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), orig, sizeof(zend_internal_function));
               function_add_ref(orig);
-              if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
-                  zend_internal_function_arg_info_recovery(orig);
-              }
+              #if PHP_VERSION_ID > 70200
+                  if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
+                      zend_internal_function_arg_info_recovery(orig);
+                  }
+              #endif
               zend_hash_str_del(CG(function_table), p->save_func, strlen(p->save_func));
          }
         p++;
     }
-    if ((orig = zend_hash_str_find_ptr(CG(function_table), ARG_INFO_COPY_FUNCTION, strlen(ARG_INFO_COPY_FUNCTION))) != NULL) {
-        zend_internal_function_arg_info_recovery(orig);
-    }
+    #if PHP_VERSION_ID > 70200
+        if ((orig = zend_hash_str_find_ptr(CG(function_table), ARG_INFO_COPY_FUNCTION, strlen(ARG_INFO_COPY_FUNCTION))) != NULL) {
+            zend_internal_function_arg_info_recovery(orig);
+        }
+    #endif
 
 #endif
 }
