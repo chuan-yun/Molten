@@ -45,8 +45,8 @@ logit "version: $version"
 tarfile="php-${version}.tar.bz2"
 if version_ge $1 "7.2.2"; then
     url="http://www.tet.com"
-# elif version_ge $1 "7.2.0"; then
-#     url="https://downloads.php.net/~pollita/${tarfile}.tar.bz2"
+elif version_ge $1 "7.2.0"; then
+    url="https://downloads.php.net/~pollita/${tarfile}.tar.bz2"
 elif version_ge $1 "5.4.0"; then
     url="http://php.net/get/$tarfile/from/this/mirror"
 else
