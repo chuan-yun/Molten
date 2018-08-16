@@ -57,7 +57,6 @@
 #define MO_FRAME_EXIT           2
 #define MO_USEC_PER_SEC         1000000l
 
-
 static inline long mo_time_sec()
 {
     struct timeval tv;
@@ -146,9 +145,6 @@ static inline zend_bool join_ori_url(smart_string *url, zend_bool trim_query_str
     }
 }
 /* }}} */
-
-
-
 
 
 uint64_t rand_uint64(void);
