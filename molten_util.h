@@ -56,6 +56,10 @@
 #define MO_FRAME_ENTRY          1
 #define MO_FRAME_EXIT           2
 #define MO_USEC_PER_SEC         1000000l
+#define ARG_INFO_COPY_FUNCTION  "curl_setopt_array"
+
+zend_arg_info *curl_setopt_array_arg_info_bak;
+
 
 static inline long mo_time_sec()
 {
@@ -145,6 +149,31 @@ static inline zend_bool join_ori_url(smart_string *url, zend_bool trim_query_str
     }
 }
 /* }}} */
+
+/* {{{ copy function->common->arg_info to bak*/
+static inline  int zend_internal_function_arg_info_copy(zend_function *function)
+{
+    uint32_t num_args = function->common.num_args + 1;
+    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
+    memcpy(dest, function->common.arg_info-1, sizeof(zend_arg_info) * num_args);
+    curl_setopt_array_arg_info_bak = dest+1;
+    return (curl_setopt_array_arg_info_bak != NULL)? 1:0;
+
+}
+/* }}} */
+
+/* {{{ recovery  function->common->arg_info from bak*/
+static inline  int zend_internal_function_arg_info_recovery(zend_function *function)
+{
+    uint32_t num_args = function->common.num_args + 1;
+    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
+    memcpy(dest, curl_setopt_array_arg_info_bak-1, sizeof(zend_arg_info) * num_args);
+    function->common.arg_info = dest+1;
+    return (function->common.arg_info != NULL)? 1:0;
+
+}
+/* }}} */
+
 
 
 uint64_t rand_uint64(void);
