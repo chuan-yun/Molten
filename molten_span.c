@@ -151,6 +151,137 @@ void retrieve_parent_span_id_4_frame(mo_frame_t *frame, char **parent_span_id)
    retrieve_parent_span_id(frame->span_stack, parent_span_id);
 }
 
+/* {{{ build zipkin v2 format main span */
+void zn_v2_start_span(zval **span, char *service_name, char *trace_id, char *span_id, char *parent_id, char *kind, long timestamp, long duration) 
+{
+    MO_ALLOC_INIT_ZVAL(*span);
+    array_init(*span);
+    mo_add_assoc_string(*span, "traceId", trace_id, 1);
+    mo_add_assoc_string(*span, "name", service_name, 1);
+    mo_add_assoc_string(*span, "version", SPAN_VERSION, 1);
+    mo_add_assoc_string(*span, "kind", kind, 1);
+    mo_add_assoc_string(*span, "id", span_id, 1);
+    if (parent_id != NULL) {
+        mo_add_assoc_string(*span, "parentId", parent_id, 1);
+    }
+    add_assoc_long(*span, "timestampMicros", timestamp);
+    add_assoc_long(*span, "durationMicros", duration);
+    
+    /* add local Endpoint */
+    zval *local_endpoint;
+    MO_ALLOC_INIT_ZVAL(local_endpoint);
+    array_init(local_endpoint);
+    add_assoc_zval(*span, "localEndpoint", local_endpoint);
+
+    /* add remote endpoint */
+    zval *remote_endpoint;
+    MO_ALLOC_INIT_ZVAL(remote_endpoint);
+    array_init(remote_endpoint);
+    add_assoc_zval(*span, "remoteEndpoint", remote_endpoint);
+
+    /* add tags */
+    zval *tags;
+    MO_ALLOC_INIT_ZVAL(tags);
+    array_init(tags);
+    add_assoc_zval(*span, "tags", tags);
+	
+    /* free */
+    MO_FREE_ALLOC_ZVAL(local_endpoint);
+    MO_FREE_ALLOC_ZVAL(remote_endpoint);
+    MO_FREE_ALLOC_ZVAL(tags);
+}
+/* }}} */
+
+/* {{{ add span annotation */
+void zn_v2_add_endpoint(zval *span, bool is_local, char *service_name, char *ipv4, long port) 
+{
+    if (span == NULL || service_name == NULL || ipv4 == NULL) {
+        return;
+    }
+
+    zval *endpoint;
+    if (is_local) {
+    	if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "localEndpoint", sizeof("localEndpoint"), (void **)&endpoint) == FAILURE) {
+    	    return;
+    	}
+    } else {
+	if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "remoteEndpoint", sizeof("remoteEndpoint"), (void **)&endpoint) == FAILURE) {
+    	    return;
+    	}
+    }
+
+    mo_add_assoc_string(endpoint, "serviceName", service_name, 1); 
+    mo_add_assoc_string(endpoint, "ipv4", ipv4, 1);
+    if (port != 0) {
+        add_assoc_long(endpoint, "port", port);
+    }
+}
+/* }}} */
+
+/* {{{ build zipkin v2 format span */
+void zn_v2_start_span_builder(zval **span, char *service_name, char *trace_id, char *span_id, char *parent_id, long start_time, long finish_time, struct mo_chain_st *pct, uint8_t an_type)
+{
+    if (an_type == AN_SERVER) {
+    	zn_v2_start_span(span, service_name, trace_id, span_id, parent_id, "SERVER", start_time, finish_time - start_time);
+    } else {
+    	zn_v2_start_span(span, service_name, trace_id, span_id, parent_id, "CLIENT", start_time, finish_time - start_time);
+    }
+    zn_v2_add_endpoint(*span, true, service_name, pct->pch.ip, pct->pch.port);
+}
+/* }}} */
+
+/* {{{ build zipkin v2 format span */
+void zn_v2_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type)
+{
+    char *span_id;
+    char *parent_span_id;
+
+    retrieve_span_id_4_frame(frame, &span_id);
+    retrieve_parent_span_id_4_frame(frame, &parent_span_id);
+
+    zn_v2_start_span_builder(span, service_name, pct->pch.trace_id->val, span_id, parent_span_id, frame->entry_time, frame->exit_time, pct, an_type);
+}
+/* }}} */
+
+/* {{{ zipkin add tag */
+void zn_v2_add_tag(zval *span, const char *key, const char *val){
+    if (span == NULL || key == NULL || val == NULL ) {
+        return;
+    }
+    zval *tags;
+    if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "tags", sizeof("tags"), (void **)&tags) == FAILURE) {
+        return;
+    }
+    mo_add_assoc_string(tags, key, (char *)val, 1);
+}
+/* }}} */
+
+/* {{{ build zn v2 ba builder */
+void zn_v2_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type) {
+    switch (ba_type) {
+        case BA_NORMAL:
+        case BA_PATH: 
+            zn_v2_add_tag(span, key, value);
+            break;
+        case BA_SA:
+        case BA_SA_HOST:
+        case BA_SA_IP:
+            zn_v2_add_tag(span, key, value);
+            zn_v2_add_endpoint(span, false, service_name, ipv4, port);
+            break;
+        default:
+            break;
+    }
+
+}
+/* }}} */
+
+/* {{{ zipkin v2 span add ba builder */
+void zn_v2_span_add_ba_ex_builder(zval *span, const char *key, const char *value, long timestamp, struct mo_chain_st *pct, uint8_t ba_type) {
+    zn_v2_span_add_ba_builder(span, key, value, timestamp, pct->service_name, pct->pch.ip, pct->pch.port, ba_type);
+}
+/* }}} */
+
 /* {{{ build zipkin format main span */
 void zn_start_span(zval **span, char *trace_id, char *server_name, char *span_id, char *parent_id, long timestamp, long duration) 
 {

@@ -9,7 +9,7 @@ if [ -z "$docker" ]; then
     fi
     
     if [ ! -f zipkin.jar ]; then
-        wget -O zipkin.jar 'https://search.maven.org/remote_content?g=io.zipkin.java&a=zipkin-server&v=LATEST&c=exec'
+        curl -sSL https://zipkin.io/quickstart.sh | bash -s
     fi
     export STORAGE_TYPE=mem
     export HTTP_COLLECTOR_ENABLE=true

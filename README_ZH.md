@@ -101,7 +101,7 @@ sh complex.sh
 
 ## 追踪块配置
 
-`molten.span_format` 追踪块格式(span), 不同的追踪系统选择`zipkin` 或者 `opentracing`。
+`molten.span_format` 追踪块格式(span), 不同的追踪系统选择`zipkin` 或者 `zipkin_v2`或者 `opentracing`。
 
 
 # 验证
