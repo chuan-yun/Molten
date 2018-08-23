@@ -103,7 +103,7 @@ report module output type is same as sink module
 
 ## Spans Config
 
-`molten.span_format` span format, you can select `zipkin` or `opentracing` for different tracing system.
+`molten.span_format` span format, you can select `zipkin` or `zipkin_v2` or `opentracing` for different tracing system.
 
 
 # Verify
