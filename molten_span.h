@@ -21,7 +21,8 @@
 #include "config.h"
 #endif
 
-#include "stdint.h"
+#include <stdint.h>
+#include <stdbool.h>
 #include <netinet/in.h>
 
 #include "php.h"
@@ -34,6 +35,7 @@
 /* log format */
 #define ZIPKIN      1
 #define OPENTRACING 1<<1
+#define ZIPKIN_V2   1<<2
 
 /* annotation type */
 #define AN_SERVER      0
@@ -59,12 +61,21 @@ typedef struct {
     span_add_ba_ex_func     span_add_ba_ex;
 }mo_span_builder;
 
-/* {{{ span builder for two format */
+/* {{{ span builder for three format */
+
+/* zipkin v1 format */
 void zn_start_span_builder(zval **span, char *service_name, char *trace_id, char *span_id, char *parent_id, long start_time, long finish_time, struct mo_chain_st *pct, uint8_t an_type);
 void zn_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type);
 void zn_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type);
 void zn_span_add_ba_ex_builder(zval *span, const char *key, const char *value, long timestamp, struct mo_chain_st *pct, uint8_t ba_type);
 
+/* zipkin v2 format */
+void zn_v2_start_span_builder(zval **span, char *service_name, char *trace_id, char *span_id, char *parent_id, long start_time, long finish_time, struct mo_chain_st *pct, uint8_t an_type);
+void zn_v2_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type);
+void zn_v2_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type);
+void zn_v2_span_add_ba_ex_builder(zval *span, const char *key, const char *value, long timestamp, struct mo_chain_st *pct, uint8_t ba_type);
+
+/* opentracing format */
 void ot_start_span_builder(zval **span, char *service_name, char *trace_id, char *span_id, char *parent_id, long start_time, long finish_time, struct mo_chain_st *pct, uint8_t an_type);
 void ot_start_span_ex_builder(zval **span, char *service_name, struct mo_chain_st *pct, mo_frame_t *frame, uint8_t an_type);
 void ot_span_add_ba_builder(zval *span, const char *key, const char *value, long timestamp, char *service_name, char *ipv4, long port, uint8_t ba_type);
@@ -98,13 +109,19 @@ void retrieve_parent_span_id_4_frame(mo_frame_t *frame, char **parent_span_id);
 /* {{{ pt span ctor */
 static void inline mo_span_ctor(mo_span_builder *psb, char *span_format)
 {
-    if(strncmp(span_format, "zipkin", sizeof("zipkin") - 1) == 0) {
+    if (strncmp(span_format, "zipkin_v2", sizeof("zipkin_v2") - 1) == 0) {
+        psb->type = ZIPKIN_V2;
+        psb->start_span         = &zn_v2_start_span_builder;
+        psb->start_span_ex      = &zn_v2_start_span_ex_builder;
+        psb->span_add_ba        = &zn_v2_span_add_ba_builder;
+        psb->span_add_ba_ex     = &zn_v2_span_add_ba_ex_builder;
+    } else if(strncmp(span_format, "zipkin", sizeof("zipkin") - 1) == 0) {
         psb->type = ZIPKIN;
         psb->start_span         = &zn_start_span_builder;
         psb->start_span_ex      = &zn_start_span_ex_builder;
         psb->span_add_ba        = &zn_span_add_ba_builder;
         psb->span_add_ba_ex     = &zn_span_add_ba_ex_builder;
-    } else {
+    } else { 
         psb->type = OPENTRACING;
         psb->start_span         = &ot_start_span_builder;
         psb->start_span_ex      = &ot_start_span_ex_builder;
