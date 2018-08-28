@@ -54,4 +54,5 @@ echo substr_count($content, "X-W-TraceId") . "\n" . substr_count($content, "X-W-
 1
 {"operationName":"php_curl","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","http.url":"http:\/\/localhost:8964\/?ch1=1","http.status":"200"},"logs":[]}
 {"operationName":"php_curl","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","http.url":"http:\/\/localhost:8965\/?ch1=1","error":true},"logs":[{"timestamp":%d,"fields":{"event":"error","error.kind":"Exception","message":"%s"}}]}
+{"operationName":"file_get_contents","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s","parentSpanID":"%s"},"tags":{"span.kind":"client","file.path":"%s"},"logs":[]}
 {"operationName":"cli","startTime":%d,"finishTime":%d,"spanContext":{"traceID":"%s","spanID":"%s"},"tags":{"span.kind":"server"},"logs":[]}
