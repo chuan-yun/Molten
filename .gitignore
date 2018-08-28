@@ -33,6 +33,9 @@
 example/zipkin.jar
 example/zipkin.jar.*
 
+# vim
+*.swp
+
 # tool
 tool
 ctrl

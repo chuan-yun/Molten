@@ -26,6 +26,7 @@
 #include "SAPI.h"
 
 #include "molten_chain.h"
+#include "molten_agent.h"
 #include "molten_log.h"
 #include "molten_util.h"
 #include "molten_slog.h"
@@ -573,7 +574,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
 PHP_INI_END()
 
-/* php_trace_init_globals */
+/* {{{ php_trace_init_globals */
 static void php_trace_init_globals(zend_molten_globals *ptg)
 {
     ptg->enable_sapi = 1;
@@ -583,6 +584,7 @@ static void php_trace_init_globals(zend_molten_globals *ptg)
         memcpy(ptg->host_name, "localhost", sizeof("localhost") - 1);
     }
 }
+/* }}} */
 
 /* {{{ PHP MINIT Function */
 PHP_MINIT_FUNCTION(molten)
@@ -598,6 +600,10 @@ PHP_MINIT_FUNCTION(molten)
     
     /* slog */
     SLOG_INIT(SLOG_STDOUT, "/tmp/molten.log");
+
+    /* startup agent */
+    /* we can use agent to collect log and send to kafka or others */
+    mo_agent_start();
 
     /* Replace executor */
 #if PHP_VERSION_ID < 50500

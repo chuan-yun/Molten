@@ -173,6 +173,7 @@ if test "$PHP_PRACING" != "no"; then
     molten_span.c \
     molten_status.c \
     molten_report.c \
+    molten_agent.c \
     molten_chain.c"
 
   dnl $ext_srcdir available after PHP_NEW_EXTENSION
