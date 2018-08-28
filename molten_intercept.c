@@ -145,6 +145,25 @@ static zval *build_com_record(mo_interceptor_t *pit, mo_frame_t *frame, int add_
 /* }}} */
 
 /*******************************************************/
+/********************file_contents**********************/
+/*******************************************************/
+static void file_contents_record(mo_interceptor_t *pit, mo_frame_t *frame) 
+{
+    if (frame->arg_count < 1) {
+        return;
+    }
+    GET_FUNC_ARG(file_path, 0);
+
+    zval *span = build_com_record(pit, frame, 0);
+
+    if (MO_Z_TYPE_P(file_path) == IS_STRING) {
+        pit->psb->span_add_ba_ex(span, "file.path", Z_STRVAL_P(file_path), frame->exit_time, pit->pct, BA_NORMAL);
+    }
+
+    mo_chain_add_span(pit->pct->pcl, span);
+}
+
+/*******************************************************/
 /********************curl_multi*************************/
 /*******************************************************/
 
@@ -1436,6 +1455,10 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE(mysqli_stmt@execute,   NULL, &mysqli_stmt_exe_oo_record);
         INIT_INTERCEPTOR_ELE(mysqli_stmt@prepare,   NULL, &mysqli_stmt_exe_oo_record);
     }
+
+    /* file_content */
+    INIT_INTERCEPTOR_ELE_TAG(file_get_contents,     &file_contents_record);
+    INIT_INTERCEPTOR_ELE_TAG(file_put_contents,     &file_contents_record);
 
     /* curl_multi */
     if (extension_loaded("curl")) {
