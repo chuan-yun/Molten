@@ -51,6 +51,8 @@ PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
 PHP_FUNCTION(molten_curl_reset);
 PHP_FUNCTION(molten_span_format);
+PHP_FUNCTION(molten_get_traceid);
+PHP_FUNCTION(molten_set_traceid);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC);
@@ -99,6 +101,8 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
     PHP_FE(molten_span_format, NULL)
+    PHP_FE(molten_get_traceid, NULL)
+    PHP_FE(molten_set_traceid, NULL)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
 
@@ -323,6 +327,37 @@ PHP_FUNCTION(molten_curl_setopt)
 
     /* after */
     /* nothing */
+}
+/* }}} */
+
+/* {{{ molten_get_traceid */
+PHP_FUNCTION(molten_get_traceid)
+{
+    if (PTG(pct).pch.is_sampled == 1) {
+       RETURN_STRING(PTG(pct).pch.trace_id->val);
+    } else {
+        RETURN_STRING("");
+    }
+}
+/* }}} */
+
+
+/* {{{ molten_set_traceid */
+PHP_FUNCTION(molten_set_traceid)
+{
+    char *trace_id;    
+    int trace_id_len;
+    int result = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &trace_id, &trace_id_len);
+    if (result  == SUCCESS) {
+        if (PTG(pct).pch.is_sampled == 1) {
+            efree(PTG(pct).pch.trace_id->val);
+            PTG(pct).pch.trace_id->val = estrndup(trace_id, trace_id_len);
+        } else {
+            RETURN_BOOL(IS_TRUE);
+        }
+    } else {
+        RETURN_BOOL(IS_FALSE);
+    }
 }
 /* }}} */
 
