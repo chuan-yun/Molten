@@ -334,9 +334,18 @@ PHP_FUNCTION(molten_curl_setopt)
 PHP_FUNCTION(molten_get_traceid)
 {
     if (PTG(pct).pch.is_sampled == 1) {
+#if PHP_VERSION_ID < 70000
+       RETURN_STRING(PTG(pct).pch.trace_id->val, 1);
+#else 
        RETURN_STRING(PTG(pct).pch.trace_id->val);
+#endif
+
     } else {
+#if PHP_VERSION_ID < 70000
+        RETURN_STRING("", 1);
+#else
         RETURN_STRING("");
+#endif
     }
 }
 /* }}} */
