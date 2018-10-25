@@ -19,10 +19,11 @@ base on php, already run on thousand instance on production env.
 1. [Installing](#install)
 2. [QuickStart](#quickstart)
 3. [Configure](#configure)
-4. [Verify](#verify)
-5. [Features](#features)
-6. [Contributing](#contributing)
-7. [License](#license)
+4. [Function](#function)
+5. [Verify](#verify)
+6. [Features](#features)
+7. [Contributing](#contributing)
+8. [License](#license)
 
 # Installing
 
@@ -105,6 +106,13 @@ report module output type is same as sink module
 
 `molten.span_format` span format, you can select `zipkin` or `zipkin_v2` or `opentracing` for different tracing system.
 
+# Function
+
+`molten_span_format()` get current span format, return zipkin or opentraceing (string).
+
+`molten_get_traceid()` get current context traceid, return hex string.
+
+`molten_set_traceid($trace_id)`  set current context traceid, return void.
 
 # Verify
 
