@@ -1480,6 +1480,9 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         RIE(Redis@setNx);RIE(Redis@setRange);RIE(Redis@del);RIE(Redis@delete);
         RIE(Redis@dump);RIE(Redis@exists);RIE(Redis@keys);RIE(Redis@getKeys);
         RIE(Redis@scan);RIE(Redis@migrate);RIE(Redis@move);RIE(Redis@persist);RIE(Redis@sort);
+        RIE(Redis@hDel);RIE(Redis@hExists);RIE(Redis@hGet);RIE(Redis@hGetAll);RIE(Redis@hIncrBy);
+        RIE(Redis@hIncrByFloat);RIE(Redis@hKeys);RIE(Redis@hLen);RIE(Redis@hMGet);RIE(Redis@hMSet);
+        RIE(Redis@hSet);RIE(Redis@hSetNx);RIE(Redis@hVals);RIE(Redis@hScan);RIE(Redis@hStrLen);
     }
 
     /* add memcache ele */
