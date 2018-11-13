@@ -829,7 +829,8 @@ PHP_MINFO_FUNCTION(molten)
 {
     php_info_print_table_start();
     php_info_print_table_header(2, "molten support", "enabled");
-    php_info_print_table_header(2, "plugin support", "pdo mysqli phpredis memcahced curl mongodb guzzle elasticsearch");
+    php_info_print_table_row(2, "molten version", PHP_MOLTEN_VERSION);
+    php_info_print_table_row(2, "plugin support", "pdo mysqli phpredis memcahced curl mongodb guzzle elasticsearch");
     php_info_print_table_end();
 
     DISPLAY_INI_ENTRIES();
