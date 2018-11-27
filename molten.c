@@ -172,9 +172,9 @@ static void molten_reload_curl_function()
             replace = zend_hash_str_find_ptr(CG(function_table), p->over_func, strlen(p->over_func));
             if ((orig = zend_hash_str_find_ptr(CG(function_table), p->orig_func, strlen(p->orig_func))) != NULL) {
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
-                    //no execute arg_info release
+                    //Not execute arg_info release
                      orig->common.fn_flags = ZEND_ACC_PUBLIC;
-                     //set orig handle
+                     //Set orig handle
                     if(!strcmp(p->orig_func,"curl_setopt")) {
                         origin_curl_setopt =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_setopt, orig, sizeof(zend_internal_function));
