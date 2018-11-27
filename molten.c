@@ -50,6 +50,8 @@ PHP_FUNCTION(molten_curl_exec);
 PHP_FUNCTION(molten_curl_setopt_array);
 PHP_FUNCTION(molten_curl_reset);
 PHP_FUNCTION(molten_span_format);
+PHP_FUNCTION(molten_get_traceid);
+PHP_FUNCTION(molten_set_traceid);
 
 void add_http_trace_header(mo_chain_t *pct, zval *header, char *span_id);
 static void frame_build(mo_frame_t *frame, zend_bool internal, unsigned char type, zend_execute_data *caller, zend_execute_data *ex, zend_op_array *op_array TSRMLS_DC);
@@ -98,6 +100,8 @@ const zend_function_entry molten_functions[] = {
     PHP_FE(molten_curl_exec, NULL)
     PHP_FE(molten_curl_reset, NULL)
     PHP_FE(molten_span_format, NULL)
+    PHP_FE(molten_get_traceid, NULL)
+    PHP_FE(molten_set_traceid, NULL)
     PHP_FE_END  /* Must be the last line in trace_functions[] */
 };
 
@@ -168,9 +172,9 @@ static void molten_reload_curl_function()
             replace = zend_hash_str_find_ptr(CG(function_table), p->over_func, strlen(p->over_func));
             if ((orig = zend_hash_str_find_ptr(CG(function_table), p->orig_func, strlen(p->orig_func))) != NULL) {
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
-                    //no execute arg_info release
+                    //Not execute arg_info release
                      orig->common.fn_flags = ZEND_ACC_PUBLIC;
-                     //set orig handle
+                     //Set orig handle
                     if(!strcmp(p->orig_func,"curl_setopt")) {
                         origin_curl_setopt =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_setopt, orig, sizeof(zend_internal_function));
@@ -281,6 +285,46 @@ PHP_FUNCTION(molten_curl_setopt)
 
     /* after */
     /* nothing */
+}
+/* }}} */
+
+/* {{{ molten_get_traceid */
+PHP_FUNCTION(molten_get_traceid)
+{
+    if (PTG(pct).pch.is_sampled == 1) {
+#if PHP_VERSION_ID < 70000
+       RETURN_STRING(PTG(pct).pch.trace_id->val, 1);
+#else 
+       RETURN_STRING(PTG(pct).pch.trace_id->val);
+#endif
+
+    } else {
+#if PHP_VERSION_ID < 70000
+        RETURN_STRING("", 1);
+#else
+        RETURN_STRING("");
+#endif
+    }
+}
+/* }}} */
+
+
+/* {{{ molten_set_traceid */
+PHP_FUNCTION(molten_set_traceid)
+{
+    char *trace_id;    
+    int trace_id_len;
+    int result = zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &trace_id, &trace_id_len);
+    if (result  == SUCCESS) {
+        if (PTG(pct).pch.is_sampled == 1) {
+            efree(PTG(pct).pch.trace_id->val);
+            PTG(pct).pch.trace_id->val = estrndup(trace_id, trace_id_len);
+        } else {
+            RETURN_BOOL(IS_TRUE);
+        }
+    } else {
+        RETURN_BOOL(IS_FALSE);
+    }
 }
 /* }}} */
 
@@ -743,7 +787,8 @@ PHP_MINFO_FUNCTION(molten)
 {
     php_info_print_table_start();
     php_info_print_table_header(2, "molten support", "enabled");
-    php_info_print_table_header(2, "plugin support", "pdo mysqli phpredis memcahced curl mongodb guzzle elasticsearch");
+    php_info_print_table_row(2, "molten version", PHP_MOLTEN_VERSION);
+    php_info_print_table_row(2, "plugin support", "pdo mysqli phpredis memcahced curl mongodb guzzle elasticsearch");
     php_info_print_table_end();
 
     DISPLAY_INI_ENTRIES();
