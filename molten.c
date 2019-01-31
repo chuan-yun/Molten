@@ -43,7 +43,6 @@
             }                                                                                   \
     }                                                                                           \
 }while(0)                                                                                 
-#define ARG_INFO_COPY_FUNCTION  "curl_setopt_array"
 
 
 PHP_FUNCTION(molten_curl_setopt);
@@ -149,32 +148,6 @@ zend_function *origin_curl_setopt_array =  NULL;
 zend_function *origin_curl_reset = NULL;
 /* }}} */
 
-/* {{{ copy function->common->arg_info to bak*/
-zend_arg_info *curl_setopt_array_arg_info_bak;
-
-static int zend_internal_function_arg_info_copy(zend_function *function)
-{
-    uint32_t num_args = function->common.num_args + 1;
-    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
-    memcpy(dest, function->common.arg_info-1, sizeof(zend_arg_info) * num_args);
-    curl_setopt_array_arg_info_bak = dest+1;
-    return (curl_setopt_array_arg_info_bak)? 1:0;
-
-}
-/* }}} */
-
-/* {{{ recovery  function->common->arg_info from bak*/
-static int zend_internal_function_arg_info_recovery(zend_function *function)
-{
-    uint32_t num_args = function->common.num_args + 1;
-    zend_arg_info *dest = malloc(sizeof(zend_arg_info) * num_args);
-    memcpy(dest, curl_setopt_array_arg_info_bak-1, sizeof(zend_arg_info) * num_args);
-    function->common.arg_info = dest+1;
-    return (function->common.arg_info)? 1:0;
-
-}
-/* }}} */
-
 /* {{{ molten reload curl function for performance */
 static void molten_reload_curl_function()
 {
@@ -199,13 +172,23 @@ static void molten_reload_curl_function()
             replace = zend_hash_str_find_ptr(CG(function_table), p->over_func, strlen(p->over_func));
             if ((orig = zend_hash_str_find_ptr(CG(function_table), p->orig_func, strlen(p->orig_func))) != NULL) {
                 if (orig->type == ZEND_INTERNAL_FUNCTION) {
-                    zend_hash_str_add_mem(CG(function_table), p->save_func, strlen(p->save_func), orig, sizeof(zend_internal_function));
+                    //Not execute arg_info release
+                     orig->common.fn_flags = ZEND_ACC_PUBLIC;
+                     //Set orig handle
+                    if(!strcmp(p->orig_func,"curl_setopt")) {
+                        origin_curl_setopt =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        memcpy(origin_curl_setopt, orig, sizeof(zend_internal_function));
+                    } else if (!strcmp(p->orig_func,"curl_exec")) {
+                        origin_curl_exec =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        memcpy(origin_curl_exec, orig, sizeof(zend_internal_function));
+                    } else if (!strcmp(p->orig_func,"curl_setopt_array")) {
+                        origin_curl_setopt_array = pemalloc(sizeof(zend_internal_function) , HASH_FLAG_PERSISTENT);
+                        memcpy(origin_curl_setopt_array, orig, sizeof(zend_internal_function));
+                    } else if (!strcmp(p->orig_func,"curl_reset")) {
+                        origin_curl_reset = pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        memcpy(origin_curl_reset, orig, sizeof(zend_internal_function));
+                    }
                     function_add_ref(orig);
-                    #if PHP_VERSION_ID > 70200
-                        if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
-                            zend_internal_function_arg_info_copy(orig);
-                        }
-                    #endif
                     zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), replace, sizeof(zend_internal_function));
                     function_add_ref(replace);
                 }
@@ -214,7 +197,6 @@ static void molten_reload_curl_function()
         p++;
     }
 #endif
-
 
     /* retrieve function from function table */
 #if PHP_MAJOR_VERSION < 7
@@ -229,20 +211,6 @@ static void molten_reload_curl_function()
         origin_curl_setopt_array = orig_func;
     }
     if (zend_hash_find(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset"), (void **)&orig_func) == SUCCESS ) {
-        origin_curl_reset = orig_func;
-    }
-#else
-    zend_function *orig_func;
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt", sizeof("origin_molten_curl_setopt") - 1)) != NULL) {
-        origin_curl_setopt = orig_func;
-    }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_exec", sizeof("origin_molten_curl_exec") - 1)) != NULL) {
-        origin_curl_exec = orig_func;
-    }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_setopt_array", sizeof("origin_molten_curl_setopt_array") - 1)) != NULL ) {
-        origin_curl_setopt_array = orig_func;
-    }
-    if ((orig_func = zend_hash_str_find_ptr(CG(function_table), "origin_molten_curl_reset", sizeof("origin_molten_curl_reset") - 1)) != NULL ) {
         origin_curl_reset = orig_func;
     }
 #endif
@@ -269,20 +237,10 @@ static void molten_clear_reload_function()
         if ((orig = zend_hash_str_find_ptr(CG(function_table), p->save_func, strlen(p->save_func))) != NULL) {
               zend_hash_str_update_mem(CG(function_table), p->orig_func, strlen(p->orig_func), orig, sizeof(zend_internal_function));
               function_add_ref(orig);
-              #if PHP_VERSION_ID > 70200
-                  if(!strcmp(p->orig_func, ARG_INFO_COPY_FUNCTION)) {
-                      zend_internal_function_arg_info_recovery(orig);
-                  }
-              #endif
               zend_hash_str_del(CG(function_table), p->save_func, strlen(p->save_func));
          }
         p++;
     }
-    #if PHP_VERSION_ID > 70200
-        if ((orig = zend_hash_str_find_ptr(CG(function_table), ARG_INFO_COPY_FUNCTION, strlen(ARG_INFO_COPY_FUNCTION))) != NULL) {
-            zend_internal_function_arg_info_recovery(orig);
-        }
-    #endif
 
 #endif
 }
