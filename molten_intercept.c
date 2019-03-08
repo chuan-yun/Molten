@@ -1429,6 +1429,7 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         ADD_INTERCEPTOR_TAG(pit, PDO);
         ADD_INTERCEPTOR_TAG(pit, PDOStatement);
         INIT_INTERCEPTOR_ELE(PDOStatement@execute,  NULL, &pdo_statement_record);
+        INIT_INTERCEPTOR_ELE(PDO@__construct,       NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@exec,              NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@query,             NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@commit,            NULL, &pdo_record);
