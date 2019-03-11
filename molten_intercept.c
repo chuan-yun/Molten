@@ -1429,6 +1429,7 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         ADD_INTERCEPTOR_TAG(pit, PDO);
         ADD_INTERCEPTOR_TAG(pit, PDOStatement);
         INIT_INTERCEPTOR_ELE(PDOStatement@execute,  NULL, &pdo_statement_record);
+        INIT_INTERCEPTOR_ELE(PDO@__construct,       NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@exec,              NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@query,             NULL, &pdo_record);
         INIT_INTERCEPTOR_ELE(PDO@commit,            NULL, &pdo_record);
@@ -1466,43 +1467,267 @@ void mo_intercept_ctor(mo_interceptor_t *pit, struct mo_chain_st *pct, mo_span_b
         INIT_INTERCEPTOR_ELE_TAG(curl_multi_remove_handle,  &curl_multi_remove_handle_record);
     }
 
-    /* redis */
+    /* redis, see https://github.com/phpredis/phpredis */
     if (extension_loaded("redis")) {
         ADD_INTERCEPTOR_TAG(pit, Redis);
 #define RIE(k)   INIT_INTERCEPTOR_ELE(k,    NULL, &redis_record)
-        RIE(Redis@connect);RIE(Redis@open);RIE(Redis@pconnect);RIE(Redis@popen);
-        RIE(Redis@auth);RIE(Redis@flushAll);RIE(Redis@flushDb);RIE(Redis@save);
-        RIE(Redis@append);RIE(Redis@bitCount);RIE(Redis@bitOp);RIE(Redis@decr);
-        RIE(Redis@decrBy);RIE(Redis@get);RIE(Redis@getBit);RIE(Redis@getRange);
-        RIE(Redis@getSet);RIE(Redis@incr);RIE(Redis@incrBy);RIE(Redis@incrByFloat);
-        RIE(Redis@mGet);RIE(Redis@getMultiple);RIE(Redis@mSet);RIE(Redis@mSetNx);
-        RIE(Redis@set);RIE(Redis@setBit);RIE(Redis@setEx);RIE(Redis@pSetEx);
-        RIE(Redis@setNx);RIE(Redis@setRange);RIE(Redis@del);RIE(Redis@delete);
-        RIE(Redis@dump);RIE(Redis@exists);RIE(Redis@keys);RIE(Redis@getKeys);
-        RIE(Redis@scan);RIE(Redis@migrate);RIE(Redis@move);RIE(Redis@persist);RIE(Redis@sort);
-        RIE(Redis@hDel);RIE(Redis@hExists);RIE(Redis@hGet);RIE(Redis@hGetAll);RIE(Redis@hIncrBy);
-        RIE(Redis@hIncrByFloat);RIE(Redis@hKeys);RIE(Redis@hLen);RIE(Redis@hMGet);RIE(Redis@hMSet);
-        RIE(Redis@hSet);RIE(Redis@hSetNx);RIE(Redis@hVals);RIE(Redis@hScan);RIE(Redis@hStrLen);
+        /* Connection */
+        RIE(Redis@connect);RIE(Redis@open);
+        RIE(Redis@pconnect);RIE(Redis@popen);
+        RIE(Redis@auth);
+        RIE(Redis@select);
+        RIE(Redis@swapdb);
+        RIE(Redis@close);
+        RIE(Redis@setOption);
+        RIE(Redis@getOption);
+        RIE(Redis@ping);
+        RIE(Redis@echo);
+        /* Server */
+        RIE(Redis@bgRewriteAOF);
+        RIE(Redis@bgSave);
+        RIE(Redis@config);
+        RIE(Redis@dbSize);
+        RIE(Redis@flushAll);
+        RIE(Redis@flushDb);
+        RIE(Redis@info);
+        RIE(Redis@lastSave);
+        RIE(Redis@resetStat);
+        RIE(Redis@save);
+        RIE(Redis@slaveOf);
+        RIE(Redis@time);
+        RIE(Redis@slowLog);
+        /* strings */
+        RIE(Redis@append);
+        RIE(Redis@bitCount);
+        RIE(Redis@bitOp);
+        RIE(Redis@decr);RIE(Redis@decrBy);
+        RIE(Redis@get);
+        RIE(Redis@getBit);
+        RIE(Redis@getRange);
+        RIE(Redis@getSet);
+        RIE(Redis@incr);RIE(Redis@incrBy);
+        RIE(Redis@incrByFloat);
+        RIE(Redis@mGet);RIE(Redis@getMultiple);
+        RIE(Redis@mSet);RIE(Redis@mSetNx);
+        RIE(Redis@set);
+        RIE(Redis@setBit);
+        RIE(Redis@setEx);RIE(Redis@pSetEx);
+        RIE(Redis@setNx);
+        RIE(Redis@setRange);
+        RIE(Redis@strLen);
+        /* Keys */
+        RIE(Redis@del);RIE(Redis@delete);RIE(Redis@unlink);
+        RIE(Redis@dump);
+        RIE(Redis@exists);
+        RIE(Redis@expire);RIE(Redis@setTimeout);RIE(Redis@pexpire);
+        RIE(Redis@expireAt);RIE(Redis@pexpireAt);
+        RIE(Redis@keys);RIE(Redis@getKeys);
+        RIE(Redis@scan);
+        RIE(Redis@migrate);
+        RIE(Redis@move);
+        RIE(Redis@object);
+        RIE(Redis@persist);
+        RIE(Redis@randomKey);
+        RIE(Redis@rename);RIE(Redis@renameKey);
+        RIE(Redis@renameNx);
+        RIE(Redis@type);
+        RIE(Redis@sort);
+        RIE(Redis@ttl);RIE(Redis@pttl);
+        RIE(Redis@restore);
+        /* Hashes */
+        RIE(Redis@hDel);
+        RIE(Redis@hExists);
+        RIE(Redis@hGet);
+        RIE(Redis@hGetAll);
+        RIE(Redis@hIncrBy);
+        RIE(Redis@hIncrByFloat);
+        RIE(Redis@hKeys);
+        RIE(Redis@hLen);
+        RIE(Redis@hMGet);
+        RIE(Redis@hMSet);
+        RIE(Redis@hSet);
+        RIE(Redis@hSetNx);
+        RIE(Redis@hVals);
+        RIE(Redis@hScan);
+        RIE(Redis@hStrLen);
+        /* Lists */
+        RIE(Redis@blPop);RIE(Redis@brPop);
+        RIE(Redis@bRPopLPush);
+        RIE(Redis@lIndex);RIE(Redis@lGet);
+        RIE(Redis@lInsert);
+        RIE(Redis@lLen);RIE(Redis@lSize);
+        RIE(Redis@lPop);
+        RIE(Redis@lPush);
+        RIE(Redis@lPushx);
+        RIE(Redis@lRange);RIE(Redis@lGetRange);
+        RIE(Redis@lRem);RIE(Redis@lRemove);
+        RIE(Redis@lSet);
+        RIE(Redis@lTrim);RIE(Redis@listTrim);
+        RIE(Redis@rPop);
+        RIE(Redis@rPopLPush);
+        RIE(Redis@rPush);
+        RIE(Redis@rPushX);
+        /* Sets */
+        RIE(Redis@sAdd);
+        RIE(Redis@sCard);RIE(Redis@sSize);
+        RIE(Redis@sDiff);
+        RIE(Redis@sDiffStore);
+        RIE(Redis@sInter);
+        RIE(Redis@sDiff);
+        RIE(Redis@sInterStore);
+        RIE(Redis@sIsMember);RIE(Redis@sContains);
+        RIE(Redis@sMembers);RIE(Redis@sGetMembers);
+        RIE(Redis@sMove);
+        RIE(Redis@sPop);
+        RIE(Redis@sRandMember);
+        RIE(Redis@sRem);RIE(Redis@sRemove);
+        RIE(Redis@sUnion);
+        RIE(Redis@sUnionStore);
+        RIE(Redis@sScan);
+        /* Sorted sets */
+        RIE(Redis@zAdd);
+        RIE(Redis@zCard);RIE(Redis@zSize);
+        RIE(Redis@zCount);
+        RIE(Redis@zIncrBy);
+        RIE(Redis@zInter);
+        RIE(Redis@zRange);
+        RIE(Redis@zRangeByScore);RIE(Redis@zRevRangeByScore);
+        RIE(Redis@zRangeByLex);
+        RIE(Redis@zRank);RIE(Redis@zRevRank);
+        RIE(Redis@zRem);RIE(Redis@zDelete);
+        RIE(Redis@zRemRangeByRank);RIE(Redis@zDeleteRangeByRank);
+        RIE(Redis@zRemRangeByScore);RIE(Redis@zDeleteRangeByScore);
+        RIE(Redis@zRevRange);
+        RIE(Redis@zScore);
+        RIE(Redis@zUnion);
+        RIE(Redis@zScan);
+        /* Geocoding */
+        RIE(Redis@geoAdd);
+        RIE(Redis@geoHash);
+        RIE(Redis@geoPos);
+        RIE(Redis@GeoDist);
+        RIE(Redis@geoRadius);
+        RIE(Redis@geoRadiusByMember);
+        /* Streams */
+        RIE(Redis@xAck);
+        RIE(Redis@xAdd);
+        RIE(Redis@xClaim);
+        RIE(Redis@xDel);
+        RIE(Redis@xGroup);
+        RIE(Redis@xInfo);
+        RIE(Redis@xLen);
+        RIE(Redis@xPending);
+        RIE(Redis@xRange);
+        RIE(Redis@xRead);
+        RIE(Redis@xReadGroup);
+        RIE(Redis@xRevRange);
+        RIE(Redis@xTrim);
+        /* Pub/sub */
+        RIE(Redis@pSubscribe);
+        RIE(Redis@publish);
+        RIE(Redis@subscribe);
+        RIE(Redis@pubSub);
+        /* Transactions */
+        RIE(Redis@multi);RIE(Redis@exec);RIE(Redis@discard);
+        RIE(Redis@watch);RIE(Redis@unwatch);
+        /* Scripting */
+        RIE(Redis@eval);
+        RIE(Redis@evalSha);
+        RIE(Redis@script);
+        RIE(Redis@getLastError);
+        RIE(Redis@clearLastError);
+        RIE(Redis@_prefix);
+        RIE(Redis@_serialize);
+        RIE(Redis@_unserialize);
+        /* Introspection */
+        RIE(Redis@isConnected);
+        RIE(Redis@getHost);
+        RIE(Redis@getPort);
+        RIE(Redis@getDbNum);
+        RIE(Redis@getTimeout);
+        RIE(Redis@getReadTimeout);
+        RIE(Redis@getPersistentID);
+        RIE(Redis@getAuth);
     }
 
-    /* add memcache ele */
+    /* add memcache ele, see http://php.net/manual/zh/book.memcache.php */
+    if (extension_loaded("memcache")) {
+        ADD_INTERCEPTOR_TAG(pit, Memcache);
+
+        INIT_INTERCEPTOR_ELE(Memcache@addServer,    NULL,  &memcached_add_server_record);
+#define MMIE(k)   INIT_INTERCEPTOR_ELE(k,     NULL, &memcached_common_record)
+        MMIE(Memcache@add);
+        MMIE(Memcache@close);
+        MMIE(Memcache@connect);
+        MMIE(Memcache@decrement);
+        MMIE(Memcache@delete);
+        MMIE(Memcache@flush);
+        MMIE(Memcache@get);
+        MMIE(Memcache@getExtendedStats);
+        MMIE(Memcache@getServerStatus);
+        MMIE(Memcache@getStats);
+        MMIE(Memcache@getVersion);
+        MMIE(Memcache@increment);
+        MMIE(Memcache@pconnect);
+        MMIE(Memcache@replace);
+        MMIE(Memcache@set);
+        MMIE(Memcache@setCompressThreshold);
+        MMIE(Memcache@setServerParams);
+    }
+
+    /* add memcache ele, see http://php.net/memcached */
     if (extension_loaded("memcached")) {
         ADD_INTERCEPTOR_TAG(pit, Memcached);
 
         INIT_INTERCEPTOR_ELE(Memcached@addServer,    NULL,  &memcached_add_server_record);
         INIT_INTERCEPTOR_ELE(Memcached@addServers,   NULL, &memcached_add_servers_record);
 #define MIE(k)   INIT_INTERCEPTOR_ELE(k,     NULL, &memcached_common_record)
-        MIE(Memcached@add);MIE(Memcached@addByKey);
-        MIE(Memcached@append);MIE(Memcached@appendByKey);
-        MIE(Memcached@cas);MIE(Memcached@casByKey);MIE(Memcached@decrement);
-        MIE(Memcached@decrementByKey);MIE(Memcached@delete);MIE(Memcached@deleteByKey);
-        MIE(Memcached@deleteMulti);MIE(Memcached@deleteMultiByKey);MIE(Memcached@fetch);
-        MIE(Memcached@fetchAll);MIE(Memcached@flush);MIE(Memcached@get);
-        MIE(Memcached@getAllKeys);MIE(Memcached@getByKey);MIE(Memcached@getDelayed);
-        MIE(Memcached@getDelayedByKey);MIE(Memcached@increment);MIE(Memcached@incrementByKey);
-        MIE(Memcached@prepend);MIE(Memcached@prependByKey);MIE(Memcached@replace);
-        MIE(Memcached@replaceByKey);MIE(Memcached@set);MIE(Memcached@setByKey);
-        MIE(Memcached@setMulti);MIE(Memcached@setMultiByKey);MIE(Memcached@touch);
+        MIE(Memcached@add);
+        MIE(Memcached@addByKey);
+        MIE(Memcached@append);
+        MIE(Memcached@appendByKey);
+        MIE(Memcached@cas);
+        MIE(Memcached@casByKey);
+        MIE(Memcached@decrement);
+        MIE(Memcached@decrementByKey);
+        MIE(Memcached@delete);
+        MIE(Memcached@deleteByKey);
+        MIE(Memcached@deleteMulti);
+        MIE(Memcached@deleteMultiByKey);
+        MIE(Memcached@fetch);
+        MIE(Memcached@fetchAll);
+        MIE(Memcached@flush);
+        MIE(Memcached@get);
+        MIE(Memcached@getAllKeys);
+        MIE(Memcached@getByKey);
+        MIE(Memcached@getDelayed);
+        MIE(Memcached@getDelayedByKey);
+        MIE(Memcached@getMulti);
+        MIE(Memcached@getMultiByKey);
+        MIE(Memcached@getOption);
+        MIE(Memcached@getResultCode);
+        MIE(Memcached@getResultMessage);
+        MIE(Memcached@getServerByKey);
+        MIE(Memcached@getServerList);
+        MIE(Memcached@getStats);
+        MIE(Memcached@getVersion);
+        MIE(Memcached@increment);
+        MIE(Memcached@incrementByKey);
+        MIE(Memcached@isPersistent);
+        MIE(Memcached@isPristine);
+        MIE(Memcached@prepend);
+        MIE(Memcached@prependByKey);
+        MIE(Memcached@quit);
+        MIE(Memcached@replace);
+        MIE(Memcached@replaceByKey);
+        MIE(Memcached@set);
+        MIE(Memcached@setByKey);
+        MIE(Memcached@setMulti);
+        MIE(Memcached@setMultiByKey);
+        MIE(Memcached@setOption);
+        MIE(Memcached@setOptions);
+        MIE(Memcached@setSaslAuthData);
+        MIE(Memcached@touch);
         MIE(Memcached@touchByKey);
     }
 
