@@ -34,7 +34,7 @@
 /*
  * crc32 code from http://www.hackersdelight.org/hdcodetxt/crc.c.txt
  */
-unsigned int crc32(unsigned char *message) {
+unsigned int crc32(char *message) {
    int i, crc;
    unsigned int byte, c;
    const unsigned int g0 = 0xEDB88320,    g1 = g0>>1,
@@ -61,10 +61,9 @@ uint64_t rand_uint64(void)
     uint64_t r = 0;
     int i = 0;
     struct timeval tv;
-    char hostname[MAX_HOST_NAME];
-    int seed = crc32(gethostname(&hostname, MAX_HOST_NAME)) * (gettimeofday(&tv, NULL) == 0 ? tv.tv_usec * getpid() : getpid());
-
-    int seed = gettimeofday(&tv, NULL) == 0 ? tv.tv_usec * getpid() : getpid();
+    char hostname;
+    gethostname(&hostname, MAX_HOST_NAME);
+    int seed = crc32(&hostname) * (gettimeofday(&tv, NULL) == 0 ? tv.tv_usec * getpid() : getpid());
     srandom(seed);
     for (i = LOOP_COUNT; i > 0; i--) {
       r = r*(RAND_MAX + (uint64_t)1) + random();
