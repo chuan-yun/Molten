@@ -63,7 +63,7 @@ sh complex.sh
 
 `molten.enable` 1开启0关闭, 默认 `1`。
 
-`molten.service_name` 设置应用服务名, 默认`default`。
+`molten.service_name` 设置应用服务名, 默认`default`。 现在支持添加 `ini_set('molten.service_name', 'YOUR_PROJECT_NAME'); ` 到代码中来在同一套 PHP 环境中区分不同项目。
 
 `molten.tracing_cli` 1追踪cli模式下信息, 0关闭, 默认`0`。
 
