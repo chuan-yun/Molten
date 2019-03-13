@@ -64,7 +64,7 @@ it is cool, alright?
 
 `molten.enable` set 1 enable or set 0 disable, default `1`.
 
-`molten.service_name` is to set service name for label app service name.
+`molten.service_name` is to set service name for label app service name. now we support add `ini_set('molten.service_name', 'YOUR_PROJECT_NAME'); ` to code to trace different projects using same php enveroment.
 
 `molten.tracing_cli` set `1` to trace, cli sapi, `0` not trace, just use for trace unit test, default `0`.
 
