@@ -26,7 +26,7 @@ fi
 
 if [ "$PHP_MAJOR" -eq "7" ] ;then
 #ls -a $MO_EX_DIR |grep memcached || printf "\n" | $PHP_PECL install -f --ignore-errors memcached-3.0.2
-ls -a $MO_EX_DIR |grep memcached || (wget http://pecl.php.net/get/memcached-3.0.2.tgz && tar xf memcached-3.0.2.tgz && cd memcached-3.0.2 && $PHP_IZE && ./configure --with-php-config=$PHP_CONF --disable-memcached-sasl && make && make install)
+ls -a $MO_EX_DIR |grep memcached || (wget http://pecl.php.net/get/memcached-3.1.0.tgz && tar xf memcached-3.1.0.tgz && cd memcached-3.1.0 && $PHP_IZE && ./configure --with-php-config=$PHP_CONF --disable-memcached-sasl && make && make install)
 else
 #ls -a $MO_EX_DIR |grep memcached || printf "\n" | $PHP_PECL install -f --ignore-errors memcached-2.2.0
 ls -a $MO_EX_DIR |grep 1memcached || (wget http://pecl.php.net/get/memcached-2.2.0.tgz && tar xf memcached-2.2.0.tgz && cd memcached-2.2.0 && $PHP_IZE && ./configure --with-php-config=$PHP_CONF --disable-memcached-sasl && make && make install)
