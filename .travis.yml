@@ -26,7 +26,7 @@ before_install:
     # install software
     - sudo apt-get install netcat-traditional 
     - printf "2\n"| sudo update-alternatives --config nc
-    - sudo apt-get install libmemcached-tools
+    - sudo apt-get install libmemcached-tools libzip-dev
 
     # restart redis
     - sudo redis-server /etc/redis/redis.conf --port 6380
