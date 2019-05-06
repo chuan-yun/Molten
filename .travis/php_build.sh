@@ -60,8 +60,10 @@ function build()
     # prepare
     param_general="--disable-all $param_debug"
     param_sapi="--enable-cli --enable-cgi"
+    if [ ${version:0:3} == "7.3" ]; then
+        param_ext="--without-libzip"
     # hack for PHP 5.2
-    if [ ${version:0:3} == "5.2" ]; then
+    elif [ ${version:0:3} == "5.2" ]; then
         # pcre: run-tests.php
         # spl:  spl_autoload_register in trace's tests
         param_ext="--with-pcre-regex --enable-spl"

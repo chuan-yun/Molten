@@ -35,9 +35,9 @@ Warning: mysqli::query(): invalid object or resource mysqli
 
 Warning: mysqli_connect(): (HY000/2002): %s on line 7
 
-Warning: mysqli_query() expects parameter 1 to be mysqli, boolean given in %s on line 8
+Warning: mysqli_query() expects parameter 1 to be mysqli, %s given in %s on line 8
 
-Warning: mysqli_prepare() expects parameter 1 to be mysqli, boolean given in %s on line 9
+Warning: mysqli_prepare() expects parameter 1 to be mysqli, %s given in %s on line 9
 
 Warning: mysqli_stmt_execute() expects parameter 1 to be mysqli_stmt, null given in %s on line 10
 
