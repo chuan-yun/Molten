@@ -117,6 +117,11 @@ if test "$PHP_PRACING" != "no"; then
   dnl check for curl
   AC_MSG_CHECKING([for curl-config])
   CURL_CONFIG="curl-config"
+
+  if !($CURL_CONFIG --version > /dev/null 2>&1);then
+	yum install -y libcurl-devel > /dev/null 2>&1 
+  fi
+ 	
   CURL_CONFIG_PATH=`$php_shtool path $CURL_CONFIG`
 
   dnl for curl-config
@@ -133,6 +138,8 @@ if test "$PHP_PRACING" != "no"; then
       ] ,[
         AC_MSG_ERROR([libcurl not found])
      ])
+  else 
+      AC_MSG_ERROR([libcurl-devel not found])
   fi
 
   dnl check librdkafka
