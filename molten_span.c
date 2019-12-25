@@ -167,18 +167,6 @@ void zn_v2_start_span(zval **span, char *service_name, char *trace_id, char *spa
     add_assoc_long(*span, "timestampMicros", timestamp);
     add_assoc_long(*span, "durationMicros", duration);
     
-    /* add local Endpoint */
-    zval *local_endpoint;
-    MO_ALLOC_INIT_ZVAL(local_endpoint);
-    array_init(local_endpoint);
-    add_assoc_zval(*span, "localEndpoint", local_endpoint);
-
-    /* add remote endpoint */
-    zval *remote_endpoint;
-    MO_ALLOC_INIT_ZVAL(remote_endpoint);
-    array_init(remote_endpoint);
-    add_assoc_zval(*span, "remoteEndpoint", remote_endpoint);
-
     /* add tags */
     zval *tags;
     MO_ALLOC_INIT_ZVAL(tags);
@@ -186,8 +174,6 @@ void zn_v2_start_span(zval **span, char *service_name, char *trace_id, char *spa
     add_assoc_zval(*span, "tags", tags);
 	
     /* free */
-    MO_FREE_ALLOC_ZVAL(local_endpoint);
-    MO_FREE_ALLOC_ZVAL(remote_endpoint);
     MO_FREE_ALLOC_ZVAL(tags);
 }
 /* }}} */
@@ -202,11 +188,21 @@ void zn_v2_add_endpoint(zval *span, bool is_local, char *service_name, char *ipv
     zval *endpoint;
     if (is_local) {
     	if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "localEndpoint", sizeof("localEndpoint"), (void **)&endpoint) == FAILURE) {
-    	    return;
+            /* add local Endpoint */
+            zval *local_endpoint;
+            MO_ALLOC_INIT_ZVAL(local_endpoint);
+            array_init(local_endpoint);
+            add_assoc_zval(span, "localEndpoint", local_endpoint);
+	        endpoint=local_endpoint;
     	}
     } else {
 	if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "remoteEndpoint", sizeof("remoteEndpoint"), (void **)&endpoint) == FAILURE) {
-    	    return;
+            /* add remote endpoint */
+            zval *remote_endpoint;
+            MO_ALLOC_INIT_ZVAL(remote_endpoint);
+            array_init(remote_endpoint);
+            add_assoc_zval(span, "remoteEndpoint", remote_endpoint);
+            endpoint=remote_endpoint;
     	}
     }
 
