@@ -18,7 +18,7 @@ else
 fi
 
 #different version mongodb
-if [ "$PHP_MAJOR" -eq "5" ] && [ "$PHP_MINOR" -eq "4" ];then
+if [ "$PHP_MAJOR" -eq "5" ] ;then
 	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb-1.3.4
 else
 	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
