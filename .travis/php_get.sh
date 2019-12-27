@@ -45,7 +45,7 @@ logit "version: $version"
 tarfile="php-${version}.tar.bz2"
  
 if  version_ge $1 "7.2.0"; then
-    url="http://101.96.10.58/am1.php.net/distributions/${tarfile}"
+    url="http://am1.php.net/distributions/${tarfile}"
 elif version_ge $1 "5.4.0"; then
     url="http://php.net/get/$tarfile/from/this/mirror"
 else
