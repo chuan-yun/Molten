@@ -14,7 +14,7 @@ PHP_MINOR=`echo $PHP_VERSION|cut -d'.' -f2`
 if [ "$PHP_MAJOR" -eq "7" ] ;then
 	ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors redis
 else
-	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors https://pecl.php.net/get/redis/2.2.5 
+	ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors https://pecl.php.net/get/redis/2.2.5 
 fi
 
 #different version mongodb
