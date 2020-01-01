@@ -164,8 +164,8 @@ void zn_v2_start_span(zval **span, char *service_name, char *trace_id, char *spa
     if (parent_id != NULL) {
         mo_add_assoc_string(*span, "parentId", parent_id, 1);
     }
-    add_assoc_long(*span, "timestampMicros", timestamp);
-    add_assoc_long(*span, "durationMicros", duration);
+    add_assoc_long(*span, "timestamp", timestamp);
+    add_assoc_long(*span, "duration", duration);
     
     /* add tags */
     zval *tags;
@@ -196,7 +196,7 @@ void zn_v2_add_endpoint(zval *span, bool is_local, char *service_name, char *ipv
 	        endpoint=local_endpoint;
     	}
     } else {
-	if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "remoteEndpoint", sizeof("remoteEndpoint"), (void **)&endpoint) == FAILURE) {
+	    if (mo_zend_hash_zval_find(Z_ARRVAL_P(span), "remoteEndpoint", sizeof("remoteEndpoint"), (void **)&endpoint) == FAILURE) {
             /* add remote endpoint */
             zval *remote_endpoint;
             MO_ALLOC_INIT_ZVAL(remote_endpoint);
