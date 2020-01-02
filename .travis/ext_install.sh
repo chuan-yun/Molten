@@ -6,15 +6,19 @@ PHP_BIN=$PHP_PATH/bin/php
 PHP_PECL=$PHP_PATH/bin/pecl
 PHP_IZE=$PHP_PATH/bin/phpize
 PHP_CONF=$PHP_PATH/bin/php-config
-
 MO_EX_DIR=`$PHP_BIN -i|grep extension_dir|grep debug|awk -F'=>' '{print $2}'`
 ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors redis
-
 PHP_MAJOR=`echo $PHP_VERSION|cut -d'.' -f1`
 PHP_MINOR=`echo $PHP_VERSION|cut -d'.' -f2`
+#different version redis 
+if [ "$PHP_MAJOR" -eq "7" ] ;then
+	ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors redis
+else
+	ls -a $MO_EX_DIR |grep redis || printf "\n" | $PHP_PECL install -f --ignore-errors https://pecl.php.net/get/redis/2.2.5 
+fi
 
 #different version mongodb
-if [ "$PHP_MAJOR" -eq "5" ] && [ "$PHP_MINOR" -eq "4" ];then
+if [ "$PHP_MAJOR" -eq "5" ] ;then
 	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb-1.3.4
 else
 	ls -a $MO_EX_DIR |grep mongodb || printf "\n" | $PHP_PECL install -f --ignore-errors mongodb
