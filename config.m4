@@ -133,6 +133,10 @@ if test "$PHP_PRACING" != "no"; then
       ] ,[
         AC_MSG_ERROR([libcurl not found])
      ])
+  else
+      AC_MSG_ERROR([The libcurl were not found. Please install it.
+                    On Debian: sudo apt-get install libcurl4-openssl-dev 
+                    On Redhat: sudo yum install libcurl-devel])
   fi
 
   dnl check librdkafka
