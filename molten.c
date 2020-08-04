@@ -527,6 +527,35 @@ ZEND_INI_MH(molten_update_service_name)
 }
 /* }}} */
 
+/* {{{ molten update sink_http_uri */
+ZEND_INI_MH(molten_update_sink_http_uri)
+{
+#if PHP_VERSION_ID < 70000 
+    if (new_value_length == 0) {
+        return FAILURE;
+    }
+
+    if (OnUpdateString(entry, new_value, new_value_length, mh_arg1, mh_arg2, mh_arg3, stage TSRMLS_CC) == FAILURE) {
+        return FAILURE;
+    }
+    
+    PTG(pcl).post_uri = new_value;
+#else
+    if (ZSTR_LEN(new_value) <= 0) {
+        return FAILURE;
+    }
+
+    if (OnUpdateString(entry, new_value, mh_arg1, mh_arg2, mh_arg3, stage) == FAILURE) {
+         return FAILURE;
+    }
+ 
+    PTG(pcl).post_uri = ZSTR_VAL(new_value);
+#endif
+
+    return SUCCESS;
+}
+/* }}} */
+
 /* {{{ molten_module_entry
 */
 zend_module_entry molten_module_entry = {
@@ -569,7 +598,7 @@ PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("molten.report_limit",          "100",          PHP_INI_SYSTEM, OnUpdateLong, report_limit, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_type",             "1",            PHP_INI_SYSTEM, OnUpdateLong, sink_type, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.output_type",           "1",            PHP_INI_SYSTEM, OnUpdateLong, output_type, zend_molten_globals, molten_globals)
-    STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_SYSTEM, OnUpdateString, sink_http_uri, zend_molten_globals, molten_globals)
+    STD_PHP_INI_ENTRY("molten.sink_http_uri",         "",             PHP_INI_ALL,    molten_update_sink_http_uri, sink_http_uri, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_syslog_unix_socket", "",           PHP_INI_SYSTEM, OnUpdateString, sink_syslog_unix_socket, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_brokers",    "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_brokers, zend_molten_globals, molten_globals)
     STD_PHP_INI_ENTRY("molten.sink_kafka_topic",      "",             PHP_INI_SYSTEM, OnUpdateString, sink_kafka_topic, zend_molten_globals, molten_globals)
