@@ -97,7 +97,7 @@ static char *convert_args_to_string(mo_frame_t *frame)
     int stop = 0;
     memset(string, 0x00, ARGS_MAX_LEN);
     arg_len = smart_string_len(frame->function) + 1; 
-    string = strncat(string, smart_string_str(frame->function), real_len - 1);
+    string = strncat(string, smart_string_str(frame->function), arg_len - 1);
     string = strncat(string, " ", 1);
 
     for (; i < frame->arg_count; i++) {
