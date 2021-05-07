@@ -44,6 +44,11 @@
     }                                                                                           \
 }while(0)                                                                                 
 
+#if PHP_VERSION_ID < 70300
+#define MO_HASH_FLAG_PERSISTENT   HASH_FLAG_PERSISTENT
+#else
+#define MO_HASH_FLAG_PERSISTENT   IS_ARRAY_PERSISTENT
+#endif
 
 PHP_FUNCTION(molten_curl_setopt);
 PHP_FUNCTION(molten_curl_exec);
@@ -176,16 +181,16 @@ static void molten_reload_curl_function()
                      orig->common.fn_flags = ZEND_ACC_PUBLIC;
                      //Set orig handle
                     if(!strcmp(p->orig_func,"curl_setopt")) {
-                        origin_curl_setopt =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        origin_curl_setopt =  pemalloc(sizeof(zend_internal_function), MO_HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_setopt, orig, sizeof(zend_internal_function));
                     } else if (!strcmp(p->orig_func,"curl_exec")) {
-                        origin_curl_exec =  pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        origin_curl_exec =  pemalloc(sizeof(zend_internal_function), MO_HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_exec, orig, sizeof(zend_internal_function));
                     } else if (!strcmp(p->orig_func,"curl_setopt_array")) {
-                        origin_curl_setopt_array = pemalloc(sizeof(zend_internal_function) , HASH_FLAG_PERSISTENT);
+                        origin_curl_setopt_array = pemalloc(sizeof(zend_internal_function) , MO_HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_setopt_array, orig, sizeof(zend_internal_function));
                     } else if (!strcmp(p->orig_func,"curl_reset")) {
-                        origin_curl_reset = pemalloc(sizeof(zend_internal_function), HASH_FLAG_PERSISTENT);
+                        origin_curl_reset = pemalloc(sizeof(zend_internal_function), MO_HASH_FLAG_PERSISTENT);
                         memcpy(origin_curl_reset, orig, sizeof(zend_internal_function));
                     }
                     function_add_ref(orig);

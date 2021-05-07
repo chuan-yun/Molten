@@ -249,7 +249,11 @@ static inline void mo_array_merge(zval *dest, zval *src TSRMLS_DC)
 static inline void array_init_persist(zval *arg ZEND_FILE_LINE_DC)
 {
     ZVAL_NEW_PERSISTENT_ARR(arg);
+#if PHP_VERSION_ID < 70300
     _zend_hash_init(Z_ARRVAL_P(arg), 0, ZVAL_PTR_DTOR, 1 ZEND_FILE_LINE_RELAY_CC);
+#else
+    _zend_hash_init(Z_ARRVAL_P(arg), 0, ZVAL_PTR_DTOR, 1);
+#endif
 }
 
 static inline void array_free_persist(zval *arg)

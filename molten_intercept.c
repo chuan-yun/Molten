@@ -97,7 +97,7 @@ static char *convert_args_to_string(mo_frame_t *frame)
     int stop = 0;
     memset(string, 0x00, ARGS_MAX_LEN);
     arg_len = smart_string_len(frame->function) + 1; 
-    string = strncat(string, smart_string_str(frame->function), real_len - 1);
+    string = strncat(string, smart_string_str(frame->function), arg_len - 1);
     string = strncat(string, " ", 1);
 
     for (; i < frame->arg_count; i++) {
@@ -335,7 +335,13 @@ static char *pcre_common_match(char *pattern, int len, char *subject)
 #else
     if ((cache = pcre_get_compiled_regex_cache(pattern, len)) != NULL) {
 #endif
+
+#if PHP_VERSION_ID >= 70400
+        zend_string *str = zend_string_init(subject, strlen(subject), 0);
+        php_pcre_match_impl(cache, str, result, subpats, 0, 0, 0, 0 TSRMLS_CC);
+#else
         php_pcre_match_impl(cache, subject, strlen(subject), result, subpats, 0, 0, 0, 0 TSRMLS_CC);
+#endif
         zval *match = NULL;
         if (Z_LVAL_P(result) > 0 && MO_Z_TYPE_P(subpats) == IS_ARRAY) {
 #if PHP_VERSION_ID >= 70000
@@ -1171,7 +1177,11 @@ static void mongodb_record(mo_interceptor_t *pit, mo_frame_t *frame)
     /* read url from debug info */
     zval *obj = frame->object;
     int is_temp;
+#if PHP_VERSION_ID >= 70400
+    HashTable *debug_hash = zend_get_properties_for(obj, ZEND_PROP_PURPOSE_DEBUG);
+#else
     HashTable *debug_hash = Z_OBJDEBUG_P(obj, is_temp);
+#endif
     zval *uri = NULL;
     if (mo_zend_hash_zval_find(debug_hash, "uri", sizeof("uri"), (void **)&uri) == SUCCESS) { 
         if (uri != NULL && MO_Z_TYPE_P(uri) == IS_STRING) {
@@ -1208,7 +1218,11 @@ static void mongodb_server_record(mo_interceptor_t *pit, mo_frame_t *frame)
     /* read url from debug info */
     zval *obj = frame->object;
     int is_temp;
+#if PHP_VERSION_ID >= 70400
+    HashTable *debug_hash = zend_get_properties_for(obj, ZEND_PROP_PURPOSE_DEBUG);
+#else
     HashTable *debug_hash = Z_OBJDEBUG_P(obj, is_temp);
+#endif
     zval *host = NULL;
     zval *port = NULL;
     if (mo_zend_hash_zval_find(debug_hash, "host", sizeof("host"), (void **)&host) == SUCCESS) { 
@@ -1342,7 +1356,11 @@ static void es_request_record(mo_interceptor_t *pit, mo_frame_t *frame)
                 if (MO_Z_TYPE_P(&host) == IS_STRING) {
                     php_url *url = php_url_parse(Z_STRVAL(host));
                     if (url != NULL) {
+#if PHP_VERSION_ID >= 70400
+                        pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "es", ZSTR_VAL(url->host), url->port, BA_SA);
+#else
                         pit->psb->span_add_ba(span, "sa", "true", frame->exit_time, "es", url->host, url->port, BA_SA);
+#endif
                     
                     } else {
                         pit->psb->span_add_ba_ex(span,  "php.db.data_source", Z_STRVAL(host), frame->exit_time, pit->pct, BA_NORMAL);
